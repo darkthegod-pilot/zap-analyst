@@ -35,6 +35,11 @@ def _parse_amount(s: Optional[str]) -> float:
         return 0.0
 
 
+def _fmt_brl(value: float) -> str:
+    """Format float as Brazilian Real string."""
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
     if target_date is None:
         target_date = datetime.now(BRT).date()
@@ -49,53 +54,129 @@ def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
     )
 
     total = len(receipts)
-    approved = sum(1 for r in receipts if r.status == ReceiptStatus.approved)
-    rejected = sum(1 for r in receipts if r.status == ReceiptStatus.rejected)
-    suspicious = sum(1 for r in receipts if r.status == ReceiptStatus.suspicious)
-    pending = sum(1 for r in receipts if r.status == ReceiptStatus.pending)
+    approved_receipts  = [r for r in receipts if r.status == ReceiptStatus.approved]
+    rejected_receipts  = [r for r in receipts if r.status == ReceiptStatus.rejected]
+    suspicious_receipts= [r for r in receipts if r.status == ReceiptStatus.suspicious]
+    pending_receipts   = [r for r in receipts if r.status == ReceiptStatus.pending]
+    duplicate_receipts = [r for r in receipts if r.is_duplicate]
 
-    # Calculate total R$ from approved receipts
-    approved_receipts = [r for r in receipts if r.status == ReceiptStatus.approved]
-    total_amount = sum(
+    approved   = len(approved_receipts)
+    rejected   = len(rejected_receipts)
+    suspicious = len(suspicious_receipts)
+    pending    = len(pending_receipts)
+    duplicates = len(duplicate_receipts)
+
+    auto_approved  = sum(1 for r in approved_receipts if r.auto_processed)
+    manual_approved = approved - auto_approved
+
+    # Calcular totais de valor
+    amounts = [
         _parse_amount(r.analysis.amount)
         for r in approved_receipts
         if r.analysis and r.analysis.amount
-    )
-    amount_str = f"R$ {total_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-    # Collect pending/suspicious clients for mention
-    need_review = [
-        r for r in receipts if r.status in (ReceiptStatus.suspicious, ReceiptStatus.pending)
     ]
-    client_ids = {r.client_id for r in need_review}
-    clients = db.query(Client).filter(Client.id.in_(client_ids)).all()
+    total_amount = round(sum(amounts), 2)
+    avg_amount   = round(total_amount / len(amounts), 2) if amounts else 0.0
+
+    # Carregar todos os clientes envolvidos
+    all_client_ids = {r.client_id for r in receipts if r.client_id}
+    clients = db.query(Client).filter(Client.id.in_(all_client_ids)).all()
     client_map = {c.id: c for c in clients}
 
+    total_clients  = db.query(Client).count()
+    active_clients = db.query(Client).filter(Client.active == True).count()
+    calote_clients = db.query(Client).filter(Client.calote == True).count()
+
     date_str = target_date.strftime("%d/%m/%Y")
+    now_str  = datetime.now(BRT).strftime("%H:%M")
+
     lines = [
         f"📊 *Relatório DarkCred — {date_str}*",
+        f"_Gerado às {now_str} (BRT)_",
         "",
-        f"✅ Aprovados: {approved}",
-        f"💰 Total recebido: {amount_str}",
-        f"❌ Rejeitados: {rejected}",
-        f"⚠️ Suspeitos/Revisão: {suspicious}",
-        f"⏳ Pendentes: {pending}",
-        f"📬 Comprovantes: {total}",
+        "━━━━━━━━━━━━━━━━━━━━━━━━",
+        f"✅ Aprovados: *{approved}*",
+        f"💰 Total recebido: *{_fmt_brl(total_amount)}*",
     ]
 
+    if avg_amount > 0:
+        lines.append(f"📈 Ticket médio: *{_fmt_brl(avg_amount)}*")
+
+    lines += [
+        f"🤖 Auto-aprovados: {auto_approved}",
+        f"👤 Aprovação manual: {manual_approved}",
+        "",
+        f"❌ Rejeitados: {rejected}",
+        f"⚠️ Suspeitos: {suspicious}",
+        f"⏳ Pendentes: {pending}",
+        f"📬 Total comprovantes: {total}",
+    ]
+
+    if duplicates:
+        lines.append(f"🔁 Duplicatas bloqueadas: {duplicates}")
+
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    # ── Lista detalhada de aprovados ──────────────────────────
+    if approved_receipts:
+        lines.append("")
+        lines.append("💳 *Pagamentos confirmados:*")
+        for r in sorted(approved_receipts, key=lambda x: x.received_at):
+            c = client_map.get(r.client_id)
+            name    = (c.name or "Sem nome") if c else "Desconhecido"
+            phone   = c.phone if c else "—"
+            amt     = (r.analysis.amount if r.analysis and r.analysis.amount else "—")
+            time_s  = r.received_at.strftime("%H:%M")
+            auto    = " 🤖" if r.auto_processed else ""
+            lines.append(f"• {name} ({phone}) — {amt} às {time_s}{auto}")
+
+    # ── Rejeitados com motivo ─────────────────────────────────
+    real_rejected = [r for r in rejected_receipts if not r.is_duplicate]
+    if real_rejected:
+        lines.append("")
+        lines.append("❌ *Comprovantes rejeitados:*")
+        for r in real_rejected:
+            c = client_map.get(r.client_id)
+            name  = (c.name or "Sem nome") if c else "Desconhecido"
+            phone = c.phone if c else "—"
+            note  = r.notes or "Rejeitado manualmente"
+            # Truncar nota longa
+            if len(note) > 60:
+                note = note[:57] + "..."
+            lines.append(f"• {name} ({phone}) — {note}")
+
+    if duplicate_receipts:
+        lines.append("")
+        lines.append("🔁 *Duplicatas bloqueadas:*")
+        for r in duplicate_receipts:
+            c = client_map.get(r.client_id)
+            name  = (c.name or "Sem nome") if c else "Desconhecido"
+            phone = c.phone if c else "—"
+            lines.append(f"• {name} ({phone}) — comprovante duplicado")
+
+    # ── Aguardando revisão ───────────────────────────────────
+    need_review = suspicious_receipts + pending_receipts
     if need_review:
         lines.append("")
-        lines.append("🔍 *Aguardando revisão manual:*")
+        lines.append("🚨 *Aguardando revisão manual:*")
         for r in need_review:
             c = client_map.get(r.client_id)
             if c:
-                name = c.name or "Sem nome"
-                lines.append(f"• {name} — {c.phone}")
+                name  = c.name or "Sem nome"
+                phone = c.phone
+                icon  = "⚠️" if r.status == ReceiptStatus.suspicious else "⏳"
+                amt   = (r.analysis.amount if r.analysis and r.analysis.amount else "")
+                amt_s = f" — {amt}" if amt else ""
+                time_s = r.received_at.strftime("%H:%M")
+                lines.append(f"{icon} {name} ({phone}){amt_s} às {time_s}")
 
-    total_clients = db.query(Client).count()
-    active_clients = db.query(Client).filter(Client.active == True).count()
+    # ── Resumo de clientes ───────────────────────────────────
     lines.append("")
-    lines.append(f"👥 Clientes monitorados: {active_clients}/{total_clients}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"👥 Clientes: {active_clients} ativos / {total_clients} total")
+    if calote_clients:
+        lines.append(f"🚩 Calote: *{calote_clients}* cliente{'s' if calote_clients != 1 else ''}")
+
     lines.append("")
     lines.append("_DarkCred ZAP Analyst_")
 

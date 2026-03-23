@@ -4,11 +4,14 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+import pytz
 from openai import AsyncOpenAI
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models.receipt import Receipt, Analysis, ReceiptStatus
+
+BRT = pytz.timezone("America/Sao_Paulo")
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -109,6 +112,61 @@ async def analyze_receipt(receipt_id: int, db: Session) -> None:
             if raw.startswith("json"):
                 raw = raw[4:]
         result = json.loads(raw)
+
+        # ── Validação de data: apenas comprovantes de HOJE são aceitos ──────
+        tx_date_str = result.get("transaction_date")
+        if tx_date_str:
+            try:
+                tx_date = datetime.strptime(tx_date_str, "%d/%m/%Y").date()
+                today = datetime.now(BRT).date()
+                if tx_date != today:
+                    indicators = result.get("fraud_indicators") or []
+                    if isinstance(indicators, list):
+                        indicators = list(indicators)
+                    else:
+                        indicators = []
+                    future_or_past = "futuro" if tx_date > today else "passado"
+                    indicators.append(
+                        f"Data inválida ({future_or_past}): comprovante de "
+                        f"{tx_date_str} — esperado {today.strftime('%d/%m/%Y')}"
+                    )
+                    result["fraud_indicators"] = indicators
+                    result["is_authentic"] = False
+                    result["confidence_score"] = min(
+                        float(result.get("confidence_score", 0.0)), 0.15
+                    )
+                    result["summary"] = (
+                        f"REJEITADO: Comprovante de {tx_date_str} ({future_or_past}). "
+                        f"Somente comprovantes de hoje ({today.strftime('%d/%m/%Y')}) são aceitos."
+                    )
+                    logger.warning(
+                        f"Receipt {receipt_id} rejected: date {tx_date_str} != today {today}"
+                    )
+            except ValueError:
+                # Data em formato não reconhecido — reduzir confiança
+                indicators = result.get("fraud_indicators") or []
+                if isinstance(indicators, list):
+                    indicators = list(indicators)
+                else:
+                    indicators = []
+                indicators.append(f"Formato de data não reconhecido: '{tx_date_str}'")
+                result["fraud_indicators"] = indicators
+                result["confidence_score"] = min(
+                    float(result.get("confidence_score", 0.0)), 0.30
+                )
+        else:
+            # Sem data identificada — sinal de suspeita
+            indicators = result.get("fraud_indicators") or []
+            if isinstance(indicators, list):
+                indicators = list(indicators)
+            else:
+                indicators = []
+            if "Data não identificada no comprovante" not in indicators:
+                indicators.append("Data não identificada no comprovante")
+            result["fraud_indicators"] = indicators
+            result["confidence_score"] = min(
+                float(result.get("confidence_score", 0.0)), 0.40
+            )
 
         analysis.is_authentic = result.get("is_authentic", False)
         analysis.confidence_score = float(result.get("confidence_score", 0.0))
