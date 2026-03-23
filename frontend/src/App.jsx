@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   FileStack, Users, BarChart3, AlertOctagon, Settings,
   RefreshCw, CheckCircle, AlertTriangle, Clock, XCircle,
-  LogOut, ChevronDown,
+  LogOut, ChevronDown, LayoutDashboard,
 } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import { usePolling }    from './hooks/usePolling'
 import { api }           from './api'
 import { presetToDates } from './components/DateFilter'
+import DashboardPage   from './components/DashboardPage'
 import ReceiptFeed     from './components/ReceiptFeed'
 import ClientList      from './components/ClientList'
 import ReportDashboard from './components/ReportDashboard'
@@ -16,10 +17,11 @@ import SettingsPage    from './components/SettingsPage'
 import PinLock         from './components/PinLock'
 
 const NAV_TABS = [
-  { id: 'receipts', label: 'Comprovantes', Icon: FileStack    },
-  { id: 'clients',  label: 'Clientes',     Icon: Users        },
-  { id: 'reports',  label: 'Relatórios',   Icon: BarChart3    },
-  { id: 'calote',   label: 'Calote',       Icon: AlertOctagon },
+  { id: 'home',     label: 'Home',         Icon: LayoutDashboard },
+  { id: 'receipts', label: 'Comprovantes', Icon: FileStack        },
+  { id: 'clients',  label: 'Clientes',     Icon: Users            },
+  { id: 'reports',  label: 'Relatórios',   Icon: BarChart3        },
+  { id: 'calote',   label: 'Calote',       Icon: AlertOctagon     },
 ]
 
 const TODAY = presetToDates('today')
@@ -109,7 +111,7 @@ function AvatarMenu({ onLogout, onSettings }) {
 }
 
 export default function App() {
-  const [tab,      setTab]      = useState('receipts')
+  const [tab,      setTab]      = useState('home')
   const [stats,    setStats]    = useState(null)
   const [online,   setOnline]   = useState(true)
   const [spin,     setSpin]     = useState(false)
@@ -158,7 +160,7 @@ export default function App() {
   }
 
   const currentTabLabel = [...NAV_TABS, { id: 'settings', label: 'Configurações' }]
-    .find(t => t.id === tab)?.label ?? ''
+    .find(t => t.id === tab)?.label ?? 'Home'
 
   if (!authChecked) return null
   if (!unlocked) return <PinLock onUnlock={() => setUnlocked(true)} />
@@ -332,6 +334,7 @@ export default function App() {
 
         {/* ── Content ─────────────────────────────── */}
         <main className="content-area animate-fade-in">
+          {tab === 'home'      && <DashboardPage stats={stats} onNavigate={setTab} />}
           {tab === 'receipts'  && (
             <ReceiptFeed
               globalDate={dateCtx}
@@ -356,7 +359,7 @@ export default function App() {
         }}
       >
         <div className="flex justify-around py-1">
-          {[...NAV_TABS, { id: 'settings', label: 'Config.', Icon: Settings }].map(({ id, label, Icon }) => (
+          {NAV_TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}

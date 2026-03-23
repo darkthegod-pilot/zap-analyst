@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import {
   Smartphone, Loader2, CheckCircle, XCircle, AlertTriangle, Clock,
-  TrendingUp, Users, Copy, Check, Send, DollarSign,
+  TrendingUp, Users, DollarSign, Percent,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '../api'
@@ -149,77 +149,77 @@ export default function ReportDashboard() {
       ) : data ? (
         <>
           {/* Financial cards row */}
-          {(data.total_amount ?? 0) > 0 && (
-            <div className="grid grid-cols-2 gap-2">
-              {/* Total aprovado */}
-              <div
-                className="rounded-[10px] p-3 flex items-center gap-2.5"
-                style={{ background: 'rgba(16,185,129,0.07)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)' }}
-              >
-                <DollarSign size={16} style={{ color: '#34D399', flexShrink: 0 }} />
-                <div className="min-w-0">
-                  <p className="text-[9px] font-semibold text-ink3 uppercase tracking-wide">Total aprovado</p>
-                  <p className="font-mono font-black text-[15px] tabular lining leading-none" style={{ color: '#34D399' }}>
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.total_amount)}
-                  </p>
-                  {data.avg_amount > 0 && (
-                    <p className="text-[9px] text-ink3 mt-0.5 truncate">
-                      Ticket: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.avg_amount)}
+          {(() => {
+            const BRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0)
+            const approvalRate = data.total > 0 ? Math.round((data.approved / data.total) * 100) : 0
+            const rateColor = approvalRate >= 70 ? '#34D399' : approvalRate >= 40 ? '#FCD34D' : '#F87171'
+            return (
+              <div className="space-y-2">
+                {/* Total + Lucro */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div
+                    className="rounded-[12px] p-4"
+                    style={{ background: 'rgba(16,185,129,0.07)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)' }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <DollarSign size={12} style={{ color: '#34D399' }} />
+                      <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Total recebido</p>
+                    </div>
+                    <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: '#34D399' }}>
+                      {BRL(data.total_amount)}
                     </p>
-                  )}
+                    {data.avg_amount > 0 && (
+                      <p className="text-[10px] text-ink3 mt-1.5">
+                        Ticket médio: <span className="font-semibold text-ink">{BRL(data.avg_amount)}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div
+                    className="rounded-[12px] p-4"
+                    style={{ background: 'rgba(5,150,105,0.09)', boxShadow: '0 0 0 0.5px rgba(5,150,105,0.30)' }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <TrendingUp size={12} style={{ color: '#10B981' }} />
+                      <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Lucro líquido</p>
+                    </div>
+                    <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: '#10B981' }}>
+                      {BRL(data.total_profit)}
+                    </p>
+                    <p className="text-[10px] text-ink3 mt-1.5">Margem de 56%</p>
+                  </div>
                 </div>
+
+                {/* Approval rate bar */}
+                {data.total > 0 && (
+                  <div
+                    className="rounded-[10px] px-4 py-3 flex items-center gap-4"
+                    style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+                  >
+                    <Percent size={14} style={{ color: rateColor, flexShrink: 0 }} />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Taxa de aprovação</span>
+                        <span className="font-mono font-black text-[14px]" style={{ color: rateColor }}>{approvalRate}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: 'rgba(100,150,255,0.08)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${approvalRate}%`, background: rateColor, boxShadow: `0 0 6px ${rateColor}55` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              {/* Lucro líquido */}
-              <div
-                className="rounded-[10px] p-3 flex items-center gap-2.5"
-                style={{ background: 'rgba(5,150,105,0.09)', boxShadow: '0 0 0 0.5px rgba(5,150,105,0.30)' }}
-              >
-                <TrendingUp size={16} style={{ color: '#10B981', flexShrink: 0 }} />
-                <div className="min-w-0">
-                  <p className="text-[9px] font-semibold text-ink3 uppercase tracking-wide">Lucro líquido</p>
-                  <p className="font-mono font-black text-[15px] tabular lining leading-none" style={{ color: '#10B981' }}>
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.total_profit ?? 0)}
-                  </p>
-                  <p className="text-[9px] text-ink3 mt-0.5">56% do total</p>
-                </div>
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Stat cards */}
-          <div className="grid grid-cols-2 gap-2">
-            <StatCard
-              icon={CheckCircle}
-              value={data.approved}
-              label="Aprovados"
-              color="#34D399"
-              bg="rgba(16,185,129,0.06)"
-              shadow="0 0 0 0.5px rgba(16,185,129,0.18)"
-            />
-            <StatCard
-              icon={XCircle}
-              value={data.rejected}
-              label="Rejeitados"
-              color="#F87171"
-              bg="rgba(239,68,68,0.06)"
-              shadow="0 0 0 0.5px rgba(239,68,68,0.18)"
-            />
-            <StatCard
-              icon={AlertTriangle}
-              value={data.suspicious}
-              label="Suspeitos"
-              color="#FCD34D"
-              bg="rgba(245,158,11,0.06)"
-              shadow="0 0 0 0.5px rgba(245,158,11,0.18)"
-            />
-            <StatCard
-              icon={Clock}
-              value={data.pending}
-              label="Pendentes"
-              color="#7A8DB5"
-              bg="rgba(75,94,138,0.06)"
-              shadow="0 0 0 0.5px rgba(75,94,138,0.18)"
-            />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <StatCard icon={CheckCircle}   value={data.approved}   label="Aprovados"  color="#34D399" bg="rgba(16,185,129,0.06)" shadow="0 0 0 0.5px rgba(16,185,129,0.18)" />
+            <StatCard icon={XCircle}       value={data.rejected}   label="Rejeitados" color="#F87171" bg="rgba(239,68,68,0.06)"  shadow="0 0 0 0.5px rgba(239,68,68,0.18)"  />
+            <StatCard icon={AlertTriangle} value={data.suspicious} label="Suspeitos"  color="#FCD34D" bg="rgba(245,158,11,0.06)" shadow="0 0 0 0.5px rgba(245,158,11,0.18)" />
+            <StatCard icon={Clock}         value={data.pending}    label="Pendentes"  color="#7A8DB5" bg="rgba(75,94,138,0.06)"  shadow="0 0 0 0.5px rgba(75,94,138,0.18)"  />
           </div>
 
           {/* Extra stats */}
@@ -256,7 +256,7 @@ export default function ReportDashboard() {
               <p className="section-title flex items-center gap-1.5">
                 <TrendingUp size={11} /> Comprovantes por dia
               </p>
-              <ResponsiveContainer width="100%" height={160}>
+              <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={dailyData} barCategoryGap="35%">
                   <XAxis
                     dataKey="name"
@@ -266,6 +266,10 @@ export default function ReportDashboard() {
                   />
                   <YAxis hide allowDecimals={false} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(100,150,255,0.04)' }} />
+                  <Legend
+                    wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                    formatter={v => <span style={{ color: '#7A8DB5' }}>{v}</span>}
+                  />
                   <Bar dataKey="approved"   name="Aprovados"  fill="#10B981" radius={[3,3,0,0]} />
                   <Bar dataKey="rejected"   name="Rejeitados" fill="#EF4444" radius={[3,3,0,0]} />
                   <Bar dataKey="suspicious" name="Suspeitos"  fill="#F59E0B" radius={[3,3,0,0]} />
