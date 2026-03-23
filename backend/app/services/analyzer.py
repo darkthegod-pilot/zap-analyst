@@ -56,6 +56,17 @@ async def analyze_receipt(receipt_id: int, db: Session) -> None:
         db.add(analysis)
         db.commit()
 
+    # Guard: OpenAI key must be configured
+    if not settings.openai_api_key:
+        analysis.error = "Chave OpenAI não configurada. Configure em Configurações."
+        analysis.confidence_score = 0.0
+        analysis.is_authentic = False
+        analysis.fraud_indicators = ["Análise de IA indisponível: chave não configurada"]
+        analysis.ai_summary = "Análise não realizada: configure a chave OpenAI nas Configurações."
+        receipt.status = ReceiptStatus.suspicious
+        db.commit()
+        return
+
     try:
         # Load image
         image_data = _load_image(receipt)

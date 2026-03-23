@@ -29,7 +29,8 @@ export default function ReceiptFeed({ onRefreshStats }) {
   const [loading,  setLoading]  = useState(true)
   const [selected, setSelected] = useState(new Set())
   const [bulkLoad, setBulkLoad] = useState(null) // 'approve' | 'reject' | null
-  const [searchQ,  setSearchQ]  = useState('')
+  const [searchQ,      setSearchQ]      = useState('')
+  const [searchInput,  setSearchInput]  = useState('')
   const searchTimer = useRef(null)
 
   const selectionMode = selected.size > 0
@@ -54,6 +55,7 @@ export default function ReceiptFeed({ onRefreshStats }) {
   usePolling(load, 6000)
 
   function handleSearch(val) {
+    setSearchInput(val)
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => setSearchQ(val), 300)
   }
@@ -108,6 +110,7 @@ export default function ReceiptFeed({ onRefreshStats }) {
           type="text"
           placeholder="Buscar por cliente (nome ou telefone)…"
           className="input w-full pl-8 text-[13px]"
+          value={searchInput}
           onChange={e => handleSearch(e.target.value)}
         />
       </div>
@@ -141,7 +144,11 @@ export default function ReceiptFeed({ onRefreshStats }) {
               : 'Sem resultados para os filtros selecionados.'
           }
           action={
-            <button className="btn-ghost btn-sm" onClick={() => setDate({ preset: 'all', date_from: null, date_to: null })}>
+            <button className="btn-ghost btn-sm" onClick={() => {
+              setDate({ preset: 'all', date_from: null, date_to: null })
+              setSearchInput('')
+              setSearchQ('')
+            }}>
               Ver todos
             </button>
           }

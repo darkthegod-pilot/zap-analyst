@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.models.database import create_tables, SessionLocal
 from app.models import client, receipt, daily_payment, system_settings  # noqa: F401 – register models
 from app.api import webhook, receipts, clients, reports, settings as settings_api, auth as auth_api
+from app.api.auth import verify_token
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -41,18 +42,18 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-# API routes
+# API routes — auth and webhook are public; everything else requires a valid token
 app.include_router(webhook.router)
-app.include_router(receipts.router, prefix="/api")
-app.include_router(clients.router, prefix="/api")
-app.include_router(reports.router, prefix="/api")
-app.include_router(settings_api.router, prefix="/api")
 app.include_router(auth_api.router, prefix="/api")
+app.include_router(receipts.router,    prefix="/api", dependencies=[Depends(verify_token)])
+app.include_router(clients.router,     prefix="/api", dependencies=[Depends(verify_token)])
+app.include_router(reports.router,     prefix="/api", dependencies=[Depends(verify_token)])
+app.include_router(settings_api.router, prefix="/api", dependencies=[Depends(verify_token)])
 
 # Serve uploaded images
 os.makedirs(settings.upload_dir, exist_ok=True)

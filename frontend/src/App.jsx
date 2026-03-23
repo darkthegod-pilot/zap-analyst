@@ -42,6 +42,10 @@ function StatPill({ Icon, value, label, color, bg, shadow }) {
 
 export default function App() {
   const [tab,      setTab]      = useState('receipts')
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [tab])
   const [stats,    setStats]    = useState(null)
   const [online,   setOnline]   = useState(true)
   const [spin,     setSpin]     = useState(false)

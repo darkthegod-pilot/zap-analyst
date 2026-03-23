@@ -7,6 +7,7 @@ import time
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,7 @@ from app.api.settings import get_effective_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+_bearer = HTTPBearer(auto_error=False)
 
 # In-memory token store: token → expiry timestamp
 _tokens: dict[str, float] = {}
@@ -60,6 +62,18 @@ def verify_pin(body: PinRequest, request: Request, db: Session = Depends(get_db)
     token = secrets.token_urlsafe(32)
     _tokens[token] = time.time() + 86400  # 24 hours
     return {"token": token}
+
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(_bearer)):
+    """FastAPI dependency — validates Bearer token on protected routes."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token não fornecido")
+    _cleanup_tokens()
+    token = credentials.credentials
+    exp = _tokens.get(token, 0)
+    if time.time() > exp:
+        _tokens.pop(token, None)
+        raise HTTPException(status_code=401, detail="Token expirado ou inválido")
 
 
 @router.get("/check")

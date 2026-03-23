@@ -59,6 +59,8 @@ export default function ClientList() {
   const [showAdd,      setShowAdd]      = useState(false)
   const [detailClient, setDetailClient] = useState(null)
   const [searchQ,      setSearchQ]      = useState('')
+  const [searchInput,  setSearchInput]  = useState('')
+  const [actionId,     setActionId]     = useState(null)
   const searchTimer = useRef(null)
 
   const load = useCallback(async () => {
@@ -80,33 +82,40 @@ export default function ClientList() {
   usePolling(load, 8000)
 
   function handleSearch(val) {
+    setSearchInput(val)
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => setSearchQ(val), 300)
   }
 
   async function deleteClient(id, label) {
     if (!window.confirm(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) return
+    setActionId(id)
     try {
       await api.deleteClient(id)
       toast(`${label} excluído`, { icon: '🗑️' })
       load()
     } catch (e) { toast.error(e.message) }
+    finally { setActionId(null) }
   }
 
   async function freezeClient(id, label) {
+    setActionId(id)
     try {
       await api.freezeClient(id)
       toast(`${label} congelado`, { icon: '❄️' })
       load()
     } catch (e) { toast.error(e.message) }
+    finally { setActionId(null) }
   }
 
   async function activateClient(id, label) {
+    setActionId(id)
     try {
       await api.activateClient(id)
       toast.success(`${label} ativado`)
       load()
     } catch (e) { toast.error(e.message) }
+    finally { setActionId(null) }
   }
 
   async function saveName(id) {
@@ -145,6 +154,7 @@ export default function ClientList() {
           type="text"
           placeholder="Buscar por nome ou telefone…"
           className="input w-full pl-8 text-[13px]"
+          value={searchInput}
           onChange={e => handleSearch(e.target.value)}
         />
       </div>
@@ -304,7 +314,8 @@ export default function ClientList() {
                     {isFrozen ? (
                       <button
                         onClick={() => activateClient(c.id, label)}
-                        className="text-ink3 hover:text-ok transition p-1"
+                        disabled={actionId === c.id}
+                        className="text-ink3 hover:text-ok transition p-1 disabled:opacity-40"
                         title="Ativar"
                       >
                         <Play size={14} />
@@ -313,7 +324,8 @@ export default function ClientList() {
                       c.active && (
                         <button
                           onClick={() => freezeClient(c.id, label)}
-                          className="text-ink4 hover:text-idle transition p-1"
+                          disabled={actionId === c.id}
+                          className="text-ink4 hover:text-idle transition p-1 disabled:opacity-40"
                           title="Congelar"
                         >
                           <Snowflake size={14} />
@@ -322,7 +334,8 @@ export default function ClientList() {
                     )}
                     <button
                       onClick={() => deleteClient(c.id, label)}
-                      className="text-ink4 hover:text-danger transition p-1"
+                      disabled={actionId === c.id}
+                      className="text-ink4 hover:text-danger transition p-1 disabled:opacity-40"
                       title="Excluir"
                     >
                       <Trash2 size={14} />

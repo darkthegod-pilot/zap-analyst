@@ -249,4 +249,8 @@ def _period_to_date(period: str) -> date:
     today = datetime.now(BRT).date()
     if period == "yesterday":
         return today - timedelta(days=1)
+    if period == "week":
+        return today - timedelta(days=6)
+    if period == "month":
+        return today - timedelta(days=29)
     return today

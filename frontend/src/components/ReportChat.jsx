@@ -31,6 +31,7 @@ export default function ReportChat() {
   }
 
   async function send(text) {
+    if (loading) return
     const t = text ?? msg
     if (!t.trim()) return
     setLoading(true); setResult(null)
@@ -49,7 +50,7 @@ export default function ReportChat() {
     setSending(true)
     try {
       await api.sendNow()
-      toast.success('Relatório enviado para +55 11 99655-4604!', { duration: 5000 })
+      toast.success('Relatório enviado para o WhatsApp do admin!', { duration: 5000 })
     } catch (e) {
       toast.error(e.message)
     } finally {
@@ -83,7 +84,7 @@ export default function ReportChat() {
             Diariamente às{' '}
             <span className="font-mono font-bold text-brand">00:00</span> BRT
             {' '}→{' '}
-            <span className="font-mono text-ink3">+55 11 99655-4604</span>
+            <span className="font-mono text-ink3">Admin WhatsApp</span>
           </p>
         </div>
         <button onClick={sendNow} disabled={sending} className="btn-primary shrink-0">

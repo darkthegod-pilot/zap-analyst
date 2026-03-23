@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from sqlalchemy.orm import subqueryload
+
 from app.models.database import get_db
 from app.models.client import Client
 from app.models.daily_payment import DailyPayment
@@ -65,7 +67,7 @@ def list_clients(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Client)
+    query = db.query(Client).options(subqueryload(Client.receipts))
     query = _apply_date_filters(query, date_from, date_to)
     if q:
         q_like = f"%{q}%"
@@ -96,7 +98,7 @@ def list_calote_clients(
     db: Session = Depends(get_db),
 ):
     """List clients flagged as calote (7+ consecutive missed days)."""
-    q = db.query(Client).filter(Client.calote == True)
+    q = db.query(Client).options(subqueryload(Client.receipts)).filter(Client.calote == True)
     total = q.count()
     clients_list = q.order_by(Client.days_overdue.desc()).offset(offset).limit(limit).all()
     return PaginatedClients(items=[_to_response(c) for c in clients_list], total=total, limit=limit, offset=offset)

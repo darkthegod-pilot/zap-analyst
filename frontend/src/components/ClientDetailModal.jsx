@@ -3,6 +3,7 @@ import { X, Flame, TrendingUp, FileText, Pencil, Check } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import toast from 'react-hot-toast'
 import { api } from '../api'
+import { formatPhone } from '../utils/format'
 
 /* ─── Score Arc (same DNA as ConfidenceArc) ─────── */
 function ScoreArc({ score }) {
@@ -177,7 +178,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
           style={{ background: '#0D1525', borderBottom: '0.5px solid rgba(100,150,255,0.07)' }}>
           <div className="min-w-0">
             <p className="text-[14px] font-bold text-ink truncate">{client.name || client.phone}</p>
-            {client.name && <p className="font-mono text-[11px] text-ink3">{client.phone}</p>}
+            {client.name && <p className="font-mono text-[11px] text-ink3">{formatPhone(client.phone)}</p>}
           </div>
           <button onClick={onClose} className="text-ink4 hover:text-ink3 transition p-1 shrink-0">
             <X size={18} />

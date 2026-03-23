@@ -150,6 +150,12 @@ async def _save_and_analyze(receipt_id: int, image_url: str, db: Session):
             bg_db.commit()
 
         await analyze_receipt(receipt_id, bg_db)
+    except Exception as e:
+        logger.error(f"Error in _save_and_analyze for receipt #{receipt_id}: {e}")
+        try:
+            bg_db.rollback()
+        except Exception:
+            pass
     finally:
         bg_db.close()
 
