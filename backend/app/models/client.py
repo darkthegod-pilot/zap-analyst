@@ -12,5 +12,6 @@ class Client(Base):
     name = Column(String(100), nullable=True)
     registered_at = Column(DateTime, default=datetime.utcnow)
     active = Column(Boolean, default=True)
+    frozen = Column(Boolean, default=False)
 
     receipts = relationship("Receipt", back_populates="client")

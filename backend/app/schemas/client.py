@@ -16,6 +16,7 @@ class ClientResponse(ClientBase):
     id: int
     registered_at: datetime
     active: bool
+    frozen: bool = False
     receipts_count: Optional[int] = 0
 
     class Config:

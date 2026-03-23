@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
@@ -127,3 +128,21 @@ def reject_receipt(
     db.commit()
     db.refresh(receipt)
     return receipt
+
+
+class BulkActionBody(BaseModel):
+    ids: List[int]
+    action: str  # "approve" | "reject"
+
+
+@router.post("/bulk")
+def bulk_action(body: BulkActionBody, db: Session = Depends(get_db)):
+    if body.action not in ("approve", "reject"):
+        raise HTTPException(status_code=400, detail="Ação inválida. Use 'approve' ou 'reject'")
+    new_status = ReceiptStatus.approved if body.action == "approve" else ReceiptStatus.rejected
+    db.query(Receipt).filter(Receipt.id.in_(body.ids)).update(
+        {"status": new_status, "auto_processed": False},
+        synchronize_session=False,
+    )
+    db.commit()
+    return {"ok": True, "updated": len(body.ids)}

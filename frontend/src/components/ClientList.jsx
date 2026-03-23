@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { UserX, Pencil, Check, X, Users, MessageCircle } from 'lucide-react'
+import { UserX, Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Play } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
@@ -8,6 +8,7 @@ import DateFilter        from './DateFilter'
 import Pagination        from './Pagination'
 import EmptyState        from './EmptyState'
 import { SkeletonList }  from './Skeleton'
+import AddClientModal    from './AddClientModal'
 
 const PAGE  = 20
 const TODAY = presetToDates('today')
@@ -47,12 +48,13 @@ function Avatar({ name, phone }) {
 }
 
 export default function ClientList() {
-  const [date,      setDate]      = useState({ preset: 'today', ...TODAY })
-  const [offset,    setOffset]    = useState(0)
-  const [data,      setData]      = useState({ items: [], total: 0 })
-  const [loading,   setLoading]   = useState(true)
-  const [editingId, setEditingId] = useState(null)
-  const [editName,  setEditName]  = useState('')
+  const [date,       setDate]       = useState({ preset: 'today', ...TODAY })
+  const [offset,     setOffset]     = useState(0)
+  const [data,       setData]       = useState({ items: [], total: 0 })
+  const [loading,    setLoading]    = useState(true)
+  const [editingId,  setEditingId]  = useState(null)
+  const [editName,   setEditName]   = useState('')
+  const [showAdd,    setShowAdd]    = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -70,10 +72,27 @@ export default function ClientList() {
   useEffect(() => { setOffset(0) }, [date.date_from, date.date_to])
   usePolling(load, 8000)
 
-  async function deactivate(id, label) {
+  async function deleteClient(id, label) {
+    if (!window.confirm(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) return
     try {
-      await api.deactivateClient(id)
-      toast(`${label} desativado`, { icon: '🔕' })
+      await api.deleteClient(id)
+      toast(`${label} excluído`, { icon: '🗑️' })
+      load()
+    } catch (e) { toast.error(e.message) }
+  }
+
+  async function freezeClient(id, label) {
+    try {
+      await api.freezeClient(id)
+      toast(`${label} congelado`, { icon: '❄️' })
+      load()
+    } catch (e) { toast.error(e.message) }
+  }
+
+  async function activateClient(id, label) {
+    try {
+      await api.activateClient(id)
+      toast.success(`${label} ativado`)
       load()
     } catch (e) { toast.error(e.message) }
   }
@@ -90,13 +109,22 @@ export default function ClientList() {
 
   return (
     <div className="space-y-4">
-      {/* Date filter */}
-      <DateFilter
-        value={date.preset}
-        customFrom={date.date_from}
-        customTo={date.date_to}
-        onChange={d => { setDate(d); setOffset(0) }}
-      />
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-3">
+        <DateFilter
+          value={date.preset}
+          customFrom={date.date_from}
+          customTo={date.date_to}
+          onChange={d => { setDate(d); setOffset(0) }}
+        />
+        <button
+          onClick={() => setShowAdd(true)}
+          className="btn-primary btn-sm shrink-0"
+        >
+          <UserPlus size={12} />
+          Adicionar
+        </button>
+      </div>
 
       {/* Tip */}
       <div
@@ -115,7 +143,7 @@ export default function ClientList() {
           >
             Comprovante salvo.
           </code>{' '}
-          via WhatsApp para registrar um cliente.
+          via WhatsApp ou use o botão acima para registrar um cliente.
         </span>
       </div>
 
@@ -140,98 +168,138 @@ export default function ClientList() {
       ) : (
         <>
           <div className="space-y-2">
-            {data.items.map(c => (
-              <div
-                key={c.id}
-                className="rounded-[10px] p-3 flex items-center gap-3 transition-colors duration-150"
-                style={{
-                  background: '#0D1525',
-                  boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
-                }}
-              >
-                {/* Avatar */}
-                <Avatar name={c.name} phone={c.phone} />
+            {data.items.map(c => {
+              const isFrozen = c.frozen
+              const label = c.name || c.phone
+              return (
+                <div
+                  key={c.id}
+                  className="rounded-[10px] p-3 flex items-center gap-3 transition-colors duration-150"
+                  style={{
+                    background: '#0D1525',
+                    boxShadow: isFrozen
+                      ? '0 0 0 0.5px rgba(75,94,138,0.25), 0 2px 6px rgba(0,0,0,0.4)'
+                      : '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+                    opacity: isFrozen ? 0.65 : 1,
+                  }}
+                >
+                  {/* Avatar */}
+                  <Avatar name={c.name} phone={c.phone} />
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  {editingId === c.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="input py-1 text-[12px] max-w-[150px]"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') saveName(c.id); if (e.key === 'Escape') setEditingId(null) }}
-                        placeholder="Nome do cliente"
-                        autoFocus
-                      />
-                      <button onClick={() => saveName(c.id)} className="text-ok hover:opacity-75 transition">
-                        <Check size={14} />
-                      </button>
-                      <button onClick={() => setEditingId(null)} className="text-ink3 hover:text-ink2 transition">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[13px] font-semibold text-ink truncate">
-                        {c.name || c.phone}
-                      </p>
-                      <button
-                        onClick={() => { setEditingId(c.id); setEditName(c.name || '') }}
-                        className="text-ink4 hover:text-ink3 transition shrink-0"
-                      >
-                        <Pencil size={11} />
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    {c.name && (
-                      <span className="font-mono text-[11px] text-ink3">{c.phone}</span>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    {editingId === c.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="input py-1 text-[12px] max-w-[150px]"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveName(c.id); if (e.key === 'Escape') setEditingId(null) }}
+                          placeholder="Nome do cliente"
+                          autoFocus
+                        />
+                        <button onClick={() => saveName(c.id)} className="text-ok hover:opacity-75 transition">
+                          <Check size={14} />
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="text-ink3 hover:text-ink2 transition">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-semibold text-ink truncate">
+                          {c.name || c.phone}
+                        </p>
+                        <button
+                          onClick={() => { setEditingId(c.id); setEditName(c.name || '') }}
+                          className="text-ink4 hover:text-ink3 transition shrink-0"
+                        >
+                          <Pencil size={11} />
+                        </button>
+                      </div>
                     )}
-                    <span
-                      className="text-[10px] font-semibold flex items-center gap-1"
-                      style={{ color: c.active ? '#34D399' : '#3D4E72' }}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                          background: c.active ? '#10B981' : '#3D4E72',
-                          boxShadow: c.active ? '0 0 5px rgba(16,185,129,0.6)' : 'none',
-                        }}
-                      />
-                      {c.active ? 'Ativo' : 'Inativo'}
-                    </span>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {c.name && (
+                        <span className="font-mono text-[11px] text-ink3">{c.phone}</span>
+                      )}
+                      {/* Status badge */}
+                      {isFrozen ? (
+                        <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#4B5E8A' }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#4B5E8A' }} />
+                          Congelado
+                        </span>
+                      ) : (
+                        <span
+                          className="text-[10px] font-semibold flex items-center gap-1"
+                          style={{ color: c.active ? '#34D399' : '#3D4E72' }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{
+                              background: c.active ? '#10B981' : '#3D4E72',
+                              boxShadow: c.active ? '0 0 5px rgba(16,185,129,0.6)' : 'none',
+                            }}
+                          />
+                          {c.active ? 'Ativo' : 'Inativo'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-mono text-[10px] text-ink4 mt-0.5">
+                      {new Date(c.registered_at + 'Z').toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
-                  <p className="font-mono text-[10px] text-ink4 mt-0.5">
-                    {new Date(c.registered_at + 'Z').toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
 
-                {/* Receipt count */}
-                <div className="text-center shrink-0 min-w-[44px]">
-                  <p
-                    className="font-mono font-black text-[18px] tabular lining text-gradient-brand"
-                  >
-                    {c.receipts_count ?? 0}
-                  </p>
-                  <p className="text-[9px] text-ink3 uppercase tracking-wide leading-none">comp.</p>
-                </div>
+                  {/* Receipt count */}
+                  <div className="text-center shrink-0 min-w-[44px]">
+                    <p className="font-mono font-black text-[18px] tabular lining text-gradient-brand">
+                      {c.receipts_count ?? 0}
+                    </p>
+                    <p className="text-[9px] text-ink3 uppercase tracking-wide leading-none">comp.</p>
+                  </div>
 
-                {/* Deactivate */}
-                {c.active && (
-                  <button
-                    onClick={() => deactivate(c.id, c.name || c.phone)}
-                    className="text-ink4 hover:text-danger transition p-1 shrink-0"
-                    title="Desativar"
-                  >
-                    <UserX size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isFrozen ? (
+                      <button
+                        onClick={() => activateClient(c.id, label)}
+                        className="text-ink3 hover:text-ok transition p-1"
+                        title="Ativar"
+                      >
+                        <Play size={14} />
+                      </button>
+                    ) : (
+                      c.active && (
+                        <button
+                          onClick={() => freezeClient(c.id, label)}
+                          className="text-ink4 hover:text-idle transition p-1"
+                          title="Congelar"
+                        >
+                          <Snowflake size={14} />
+                        </button>
+                      )
+                    )}
+                    <button
+                      onClick={() => deleteClient(c.id, label)}
+                      className="text-ink4 hover:text-danger transition p-1"
+                      title="Excluir"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
           <Pagination total={data.total} limit={PAGE} offset={offset} onChange={setOffset} />
         </>
+      )}
+
+      {/* Add client modal */}
+      {showAdd && (
+        <AddClientModal
+          onClose={() => setShowAdd(false)}
+          onCreated={() => { load(); setDate({ preset: 'all', date_from: null, date_to: null }) }}
+        />
       )}
     </div>
   )

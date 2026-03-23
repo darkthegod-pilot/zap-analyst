@@ -9,6 +9,7 @@ async function req(path, options = {}) {
     const err = await resp.json().catch(() => ({}))
     throw new Error(err.detail || `Erro HTTP ${resp.status}`)
   }
+  if (resp.status === 204) return null
   return resp.json()
 }
 
@@ -53,11 +54,26 @@ export const api = {
     return req(`/clients?${qs}`)
   },
 
+  createClient: (data) =>
+    req('/clients', { method: 'POST', body: JSON.stringify(data) }),
+
+  deleteClient: (id) =>
+    req(`/clients/${id}`, { method: 'DELETE' }),
+
+  freezeClient: (id) =>
+    req(`/clients/${id}/freeze`, { method: 'PATCH' }),
+
+  activateClient: (id) =>
+    req(`/clients/${id}/activate`, { method: 'PATCH' }),
+
   deactivateClient: (id) =>
     req(`/clients/${id}/deactivate`, { method: 'PATCH' }),
 
   updateClientName: (id, name) =>
     req(`/clients/${id}/name?name=${encodeURIComponent(name)}`, { method: 'PATCH' }),
+
+  bulkAction: (ids, action) =>
+    req('/receipts/bulk', { method: 'POST', body: JSON.stringify({ ids, action }) }),
 
   // ── Reports ────────────────────────────────────────────────────────────────
   requestReport: (message) =>

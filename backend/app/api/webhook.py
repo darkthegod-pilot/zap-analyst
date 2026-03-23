@@ -48,9 +48,22 @@ async def zapi_webhook(
             _register_client(phone, db)
         return {"ok": True}
 
+    # --- Admin sends outgoing image → auto-register recipient if not yet saved ---
+    if is_from_me and phone:
+        image_url = _extract_image_url(body)
+        if image_url:
+            existing = db.query(Client).filter(Client.phone == phone).first()
+            if not existing:
+                _register_client(phone, db)
+            return {"ok": True}
+
     # --- Incoming message from a monitored client ---
     if not is_from_me and phone:
-        client = db.query(Client).filter(Client.phone == phone, Client.active == True).first()
+        client = db.query(Client).filter(
+            Client.phone == phone,
+            Client.active == True,
+            Client.frozen == False,
+        ).first()
         if client:
             image_url = _extract_image_url(body)
             if image_url:
