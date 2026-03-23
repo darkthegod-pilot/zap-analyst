@@ -88,15 +88,9 @@ async def zapi_webhook(
                 db.commit()
                 db.refresh(receipt)
 
-                if media["type"] == "pdf":
-                    # PDF: save for manual review, no AI
-                    receipt.notes = "PDF recebido — revisão manual necessária"
-                    db.commit()
-                    logger.info(f"New PDF receipt #{receipt.id} from client {phone} — manual review")
-                else:
-                    # Image: run AI analysis
-                    background_tasks.add_task(_save_and_analyze, receipt.id, media["url"])
-                    logger.info(f"New receipt #{receipt.id} from client {phone}")
+                media_type = media["type"]  # "image" or "pdf"
+                background_tasks.add_task(_save_and_analyze, receipt.id, media["url"], media_type)
+                logger.info(f"New {media_type} receipt #{receipt.id} from client {phone}")
 
     return {"ok": True}
 
@@ -115,8 +109,8 @@ def _register_client(phone: str, db: Session) -> Client:
     return client
 
 
-async def _save_and_analyze(receipt_id: int, image_url: str):
-    """Download image with ZAPI auth, save locally, check duplicate, run AI analysis."""
+async def _save_and_analyze(receipt_id: int, image_url: str, media_type: str = "image"):
+    """Download image/PDF with ZAPI auth, save locally, check duplicate, run AI analysis."""
     from app.api.settings import get_effective_settings
     bg_db = SessionLocal()
     try:
@@ -127,13 +121,13 @@ async def _save_and_analyze(receipt_id: int, image_url: str):
         # Load effective settings (includes DB-configured credentials)
         s = get_effective_settings(bg_db)
 
-        # Download image using ZAPI auth headers
+        # Download file using ZAPI auth headers
         img_bytes = await zapi_svc.download_image(image_url, effective=s)
 
         if img_bytes:
             # Save locally
             try:
-                ext = ".jpg"
+                ext = ".pdf" if media_type == "pdf" else ".jpg"
                 filename = f"{uuid.uuid4()}{ext}"
                 save_path = Path(settings.upload_dir) / filename
                 save_path.write_bytes(img_bytes)

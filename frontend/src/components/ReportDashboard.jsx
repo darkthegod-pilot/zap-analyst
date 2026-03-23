@@ -148,23 +148,40 @@ export default function ReportDashboard() {
         </div>
       ) : data ? (
         <>
-          {/* R$ total card */}
+          {/* Financial cards row */}
           {(data.total_amount ?? 0) > 0 && (
-            <div
-              className="rounded-[10px] p-3 flex items-center gap-3"
-              style={{ background: 'rgba(16,185,129,0.07)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)' }}
-            >
-              <DollarSign size={18} style={{ color: '#34D399', flexShrink: 0 }} />
-              <div>
-                <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Total aprovado</p>
-                <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: '#34D399' }}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.total_amount)}
-                </p>
-                {data.avg_amount > 0 && (
-                  <p className="text-[10px] text-ink3 mt-0.5">
-                    Ticket médio: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.avg_amount)}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Total aprovado */}
+              <div
+                className="rounded-[10px] p-3 flex items-center gap-2.5"
+                style={{ background: 'rgba(16,185,129,0.07)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)' }}
+              >
+                <DollarSign size={16} style={{ color: '#34D399', flexShrink: 0 }} />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold text-ink3 uppercase tracking-wide">Total aprovado</p>
+                  <p className="font-mono font-black text-[15px] tabular lining leading-none" style={{ color: '#34D399' }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.total_amount)}
                   </p>
-                )}
+                  {data.avg_amount > 0 && (
+                    <p className="text-[9px] text-ink3 mt-0.5 truncate">
+                      Ticket: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.avg_amount)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {/* Lucro líquido */}
+              <div
+                className="rounded-[10px] p-3 flex items-center gap-2.5"
+                style={{ background: 'rgba(5,150,105,0.09)', boxShadow: '0 0 0 0.5px rgba(5,150,105,0.30)' }}
+              >
+                <TrendingUp size={16} style={{ color: '#10B981', flexShrink: 0 }} />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold text-ink3 uppercase tracking-wide">Lucro líquido</p>
+                  <p className="font-mono font-black text-[15px] tabular lining leading-none" style={{ color: '#10B981' }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.total_profit ?? 0)}
+                  </p>
+                  <p className="text-[9px] text-ink3 mt-0.5">56% do total</p>
+                </div>
               </div>
             </div>
           )}

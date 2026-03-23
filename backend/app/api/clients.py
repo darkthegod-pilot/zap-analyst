@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, date
 from typing import List, Optional
 
@@ -209,6 +210,57 @@ def get_client_score(client_id: int, db: Session = Depends(get_db)):
         streak=client.streak if client.streak is not None else 0,
         history=history,
     )
+
+
+def _parse_amount_local(s: Optional[str]) -> float:
+    if not s:
+        return 0.0
+    cleaned = s.replace("R$", "").replace(".", "").replace(",", ".").strip()
+    m = re.search(r"[\d.]+", cleaned)
+    try:
+        return float(m.group()) if m else 0.0
+    except ValueError:
+        return 0.0
+
+
+@router.get("/{client_id}/receipts-summary")
+def get_client_receipts_summary(client_id: int, db: Session = Depends(get_db)):
+    """Return financial summary and last 10 receipts for a client."""
+    from app.models.receipt import ReceiptStatus
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+    approved = [r for r in client.receipts if r.status == ReceiptStatus.approved]
+    amounts = [
+        _parse_amount_local(r.analysis.amount)
+        for r in approved
+        if r.analysis and r.analysis.amount
+    ]
+    total_amount = round(sum(amounts), 2)
+    profit = round(total_amount * 0.56, 2)
+    avg_ticket = round(total_amount / len(amounts), 2) if amounts else 0.0
+
+    recent = sorted(client.receipts, key=lambda x: x.received_at, reverse=True)[:10]
+    receipts_data = [
+        {
+            "id": r.id,
+            "status": r.status.value,
+            "received_at": r.received_at.isoformat(),
+            "amount": r.analysis.amount if r.analysis else None,
+            "bank_name": r.analysis.bank_name if r.analysis else None,
+            "is_duplicate": r.is_duplicate,
+        }
+        for r in recent
+    ]
+
+    return {
+        "total_amount": total_amount,
+        "profit": profit,
+        "avg_ticket": avg_ticket,
+        "payment_count": len(approved),
+        "receipts": receipts_data,
+    }
 
 
 @router.patch("/{client_id}/remove-calote")

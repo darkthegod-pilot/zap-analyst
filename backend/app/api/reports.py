@@ -78,6 +78,7 @@ class SummaryResponse(BaseModel):
     duplicates: int
     total_amount: float
     avg_amount: float
+    total_profit: float
     daily: List[DayPoint]
     hourly: List[HourPoint]
 
@@ -140,6 +141,7 @@ def get_summary(
     amounts = [_parse_amount(a.amount) for a in approved_with_analysis if a.amount]
     total_amount = round(sum(amounts), 2)
     avg_amount = round(total_amount / len(amounts), 2) if amounts else 0.0
+    total_profit = round(total_amount * 0.56, 2)
 
     # ── Daily breakdown ────────────────────────────────────────────────────
     daily: List[DayPoint] = []
@@ -190,6 +192,7 @@ def get_summary(
         duplicates=duplicates,
         total_amount=total_amount,
         avg_amount=avg_amount,
+        total_profit=total_profit,
         daily=daily,
         hourly=hourly,
     )

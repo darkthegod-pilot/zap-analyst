@@ -240,11 +240,31 @@ async def analyze_receipt(receipt_id: int, db: Session) -> None:
         db.commit()
 
 
+def _pdf_to_image_bytes(path: str) -> bytes | None:
+    """Render the first page of a PDF to PNG bytes using PyMuPDF."""
+    try:
+        import fitz  # PyMuPDF
+        doc = fitz.open(path)
+        page = doc[0]
+        mat = fitz.Matrix(2.0, 2.0)  # 2× zoom for clarity
+        pix = page.get_pixmap(matrix=mat)
+        return pix.tobytes("png")
+    except Exception as e:
+        logger.warning(f"PDF render error for '{path}': {e}")
+        return None
+
+
 def _load_image(receipt: Receipt) -> dict | None:
     """Load image from local path or URL, return base64 encoded data."""
     # Try local file first
     if receipt.image_path and Path(receipt.image_path).exists():
         path = Path(receipt.image_path)
+        # PDF: convert first page to PNG
+        if path.suffix.lower() == ".pdf":
+            data = _pdf_to_image_bytes(str(path))
+            if data:
+                return {"b64": base64.b64encode(data).decode(), "mime": "image/png"}
+            return None
         mime = _mime_from_extension(path.suffix)
         data = path.read_bytes()
         return {"b64": base64.b64encode(data).decode(), "mime": mime}

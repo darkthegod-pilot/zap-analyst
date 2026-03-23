@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -92,6 +94,16 @@ def get_stats(
         total_clients=total_clients,
         active_clients=active_clients,
     )
+
+
+@router.get("/{receipt_id}/file")
+def get_receipt_file(receipt_id: int, db: Session = Depends(get_db)):
+    """Serve the receipt image or PDF file directly."""
+    receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    if not receipt or not receipt.image_path or not Path(receipt.image_path).exists():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    media_type = "application/pdf" if receipt.image_path.endswith(".pdf") else "image/jpeg"
+    return FileResponse(receipt.image_path, media_type=media_type)
 
 
 @router.get("/{receipt_id}", response_model=ReceiptResponse)

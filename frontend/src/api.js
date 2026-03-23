@@ -68,6 +68,8 @@ export const api = {
 
   getClientScore: (id) => req(`/clients/${id}/score`),
 
+  getClientReceiptsSummary: (id) => req(`/clients/${id}/receipts-summary`),
+
   createClient: (data) =>
     req('/clients', { method: 'POST', body: JSON.stringify(data) }),
 

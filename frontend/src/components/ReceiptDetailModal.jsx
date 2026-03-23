@@ -113,9 +113,12 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
   const canReanalyze = receipt.status === 'suspicious' || receipt.status === 'pending' || a?.error
   const decision = buildDecision(receipt)
 
-  const imgUrl = receipt.image_path
-    ? `/uploads/${receipt.image_path.split('/').pop()}`
-    : receipt.image_url
+  const isPdf = receipt.image_path?.endsWith('.pdf') || receipt.notes?.includes('PDF')
+  const imgUrl = isPdf
+    ? null
+    : receipt.image_path
+      ? `/uploads/${receipt.image_path.split('/').pop()}`
+      : receipt.image_url
 
   const time = new Date(receipt.received_at + 'Z').toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -202,7 +205,18 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
             <div className="flex gap-4">
               {/* Thumbnail */}
               <div className="shrink-0">
-                {imgUrl ? (
+                {isPdf ? (
+                  <a
+                    href={`/api/receipts/${receipt.id}/file`}
+                    target="_blank" rel="noreferrer"
+                    className="flex flex-col items-center justify-center rounded-[10px] gap-1 group"
+                    style={{ width: 80, height: 80, background: 'rgba(239,68,68,0.08)', boxShadow: '0 0 0 0.5px rgba(239,68,68,0.20)' }}
+                    title="Abrir PDF"
+                  >
+                    <span style={{ fontSize: 26 }}>📄</span>
+                    <span className="text-[9px] text-ink3 group-hover:text-ink2 transition font-semibold">PDF</span>
+                  </a>
+                ) : imgUrl ? (
                   <button
                     onClick={() => setPreviewOpen(true)}
                     className="block rounded-[10px] overflow-hidden relative group focus:outline-none"
@@ -238,6 +252,18 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                 )}
               </div>
             </div>
+
+            {/* PDF inline preview */}
+            {isPdf && receipt.image_path && (
+              <Section title="📄 Preview do PDF">
+                <iframe
+                  src={`/api/receipts/${receipt.id}/file`}
+                  className="w-full rounded-[10px] border"
+                  style={{ height: 320, borderColor: 'rgba(100,150,255,0.12)' }}
+                  title="Comprovante PDF"
+                />
+              </Section>
+            )}
 
             {/* Decision section */}
             <Section title="🔬 Decisão da IA">

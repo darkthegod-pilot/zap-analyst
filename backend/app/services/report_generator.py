@@ -44,9 +44,11 @@ def _period_summary(db: Session, start: datetime, end: datetime) -> dict:
         for r in approved
         if r.analysis and r.analysis.amount
     ]
+    total = round(sum(amounts), 2)
     return {
         "count":  len(approved),
-        "total":  round(sum(amounts), 2),
+        "total":  total,
+        "profit": round(total * 0.56, 2),
     }
 
 
@@ -77,9 +79,9 @@ def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
     lines = [
         f"📊 *DarkCred — {date_str} {now_str}*",
         "",
-        f"📅 Hoje: *{hoje['count']} pagamento{'s' if hoje['count'] != 1 else ''}* — *{_fmt_brl(hoje['total'])}*",
-        f"📆 Ontem: *{ontem['count']} pagamento{'s' if ontem['count'] != 1 else ''}* — *{_fmt_brl(ontem['total'])}*",
-        f"🗓 Mês: *{mes['count']} pagamento{'s' if mes['count'] != 1 else ''}* — *{_fmt_brl(mes['total'])}*",
+        f"📅 Hoje: *{hoje['count']} pagamento{'s' if hoje['count'] != 1 else ''}* — *{_fmt_brl(hoje['total'])}* _(lucro {_fmt_brl(hoje['profit'])})_",
+        f"📆 Ontem: *{ontem['count']} pagamento{'s' if ontem['count'] != 1 else ''}* — *{_fmt_brl(ontem['total'])}* _(lucro {_fmt_brl(ontem['profit'])})_",
+        f"🗓 Mês: *{mes['count']} pagamento{'s' if mes['count'] != 1 else ''}* — *{_fmt_brl(mes['total'])}* _(lucro {_fmt_brl(mes['profit'])})_",
         "",
         "_DarkCred ZAP Analyst_",
     ]
