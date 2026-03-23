@@ -1,8 +1,17 @@
 const BASE = '/api'
 
+function getToken() {
+  return localStorage.getItem('dc_auth_token') || ''
+}
+
 async function req(path, options = {}) {
+  const token = getToken()
   const resp = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
     ...options,
   })
   if (!resp.ok) {
@@ -29,12 +38,15 @@ export const api = {
   },
 
   // ── Receipts ───────────────────────────────────────────────────────────────
-  getReceipts: ({ status, date_from, date_to, limit = 20, offset = 0 } = {}) => {
-    const qs = buildParams({ status, date_from, date_to, limit, offset })
+  getReceipts: ({ status, date_from, date_to, q, limit = 20, offset = 0 } = {}) => {
+    const qs = buildParams({ status, date_from, date_to, q, limit, offset })
     return req(`/receipts?${qs}`)
   },
 
   getReceipt: (id) => req(`/receipts/${id}`),
+
+  reanalyzeReceipt: (id) =>
+    req(`/receipts/${id}/reanalyze`, { method: 'POST' }),
 
   approveReceipt: (id, notes) =>
     req(`/receipts/${id}/approve`, {
@@ -49,8 +61,8 @@ export const api = {
     }),
 
   // ── Clients ────────────────────────────────────────────────────────────────
-  getClients: ({ date_from, date_to, limit = 20, offset = 0 } = {}) => {
-    const qs = buildParams({ date_from, date_to, limit, offset })
+  getClients: ({ date_from, date_to, q, limit = 20, offset = 0 } = {}) => {
+    const qs = buildParams({ date_from, date_to, q, limit, offset })
     return req(`/clients?${qs}`)
   },
 
@@ -74,6 +86,9 @@ export const api = {
   updateClientName: (id, name) =>
     req(`/clients/${id}/name?name=${encodeURIComponent(name)}`, { method: 'PATCH' }),
 
+  updateClientNotes: (id, notes) =>
+    req(`/clients/${id}/notes?notes=${encodeURIComponent(notes)}`, { method: 'PATCH' }),
+
   // ── Calote ────────────────────────────────────────────────────────────────
   getCaloteClients: ({ limit = 20, offset = 0 } = {}) => {
     const qs = buildParams({ limit, offset })
@@ -96,6 +111,13 @@ export const api = {
 
   sendNow: () =>
     req('/reports/send-now', { method: 'POST' }),
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  verifyPin: (pin) =>
+    req('/auth/verify-pin', { method: 'POST', body: JSON.stringify({ pin }) }),
+
+  checkToken: (token) =>
+    req(`/auth/check?token=${encodeURIComponent(token)}`),
 
   // ── Settings ───────────────────────────────────────────────────────────────
   getSettings: () => req('/settings'),

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   FileStack, Users, BarChart3, AlertOctagon, Settings,
   RefreshCw, CheckCircle, AlertTriangle, Clock, XCircle,
@@ -12,6 +12,7 @@ import ClientList      from './components/ClientList'
 import ReportDashboard from './components/ReportDashboard'
 import CalotePage      from './components/CalotePage'
 import SettingsPage    from './components/SettingsPage'
+import PinLock         from './components/PinLock'
 
 const TABS = [
   { id: 'receipts',  label: 'Comprovantes', Icon: FileStack      },
@@ -45,6 +46,18 @@ export default function App() {
   const [online,   setOnline]   = useState(true)
   const [spin,     setSpin]     = useState(false)
   const [dateCtx,  setDateCtx]  = useState({ preset: 'today', ...TODAY })
+  const [unlocked, setUnlocked] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+
+  // Verify stored token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('dc_auth_token')
+    if (!token) { setAuthChecked(true); return }
+    api.checkToken(token)
+      .then(() => setUnlocked(true))
+      .catch(() => { localStorage.removeItem('dc_auth_token') })
+      .finally(() => setAuthChecked(true))
+  }, [])
 
   const refresh = useCallback(async () => {
     try {
@@ -66,6 +79,10 @@ export default function App() {
     await refresh()
     setTimeout(() => setSpin(false), 500)
   }
+
+  // Show nothing while checking token, then show PinLock or app
+  if (!authChecked) return null
+  if (!unlocked) return <PinLock onUnlock={() => setUnlocked(true)} />
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: '#080D18', color: '#E8EEF8' }}>

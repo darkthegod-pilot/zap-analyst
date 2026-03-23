@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime, timedelta
 from typing import Optional, List
 
@@ -11,10 +12,22 @@ from openai import AsyncOpenAI
 from app.core.config import get_settings
 from app.models.database import get_db
 from app.models.client import Client
-from app.models.receipt import Receipt, ReceiptStatus
+from app.models.receipt import Receipt, Analysis, ReceiptStatus
 from app.schemas.receipt import ReportRequest
 from app.services.report_generator import build_daily_report, send_daily_report
 from app.services import zapi
+
+
+def _parse_amount(s: str | None) -> float:
+    """Extract numeric value from amount string like 'R$ 1.500,00'."""
+    if not s:
+        return 0.0
+    cleaned = s.replace("R$", "").replace(".", "").replace(",", ".").strip()
+    m = re.search(r"[\d.]+", cleaned)
+    try:
+        return float(m.group()) if m else 0.0
+    except ValueError:
+        return 0.0
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 settings = get_settings()
@@ -63,6 +76,8 @@ class SummaryResponse(BaseModel):
     calote_clients: int
     auto_approved: int
     duplicates: int
+    total_amount: float
+    avg_amount: float
     daily: List[DayPoint]
     hourly: List[HourPoint]
 
@@ -111,6 +126,21 @@ def get_summary(
     active_clients = db.query(Client).filter(Client.active == True).count()
     calote_clients = db.query(Client).filter(Client.calote == True).count()
 
+    # R$ amount totals (from approved receipts with analysis)
+    approved_with_analysis = (
+        db.query(Analysis)
+        .join(Receipt, Receipt.id == Analysis.receipt_id)
+        .filter(
+            Receipt.received_at >= start_dt,
+            Receipt.received_at < end_dt,
+            Receipt.status == ReceiptStatus.approved,
+        )
+        .all()
+    )
+    amounts = [_parse_amount(a.amount) for a in approved_with_analysis if a.amount]
+    total_amount = round(sum(amounts), 2)
+    avg_amount = round(total_amount / len(amounts), 2) if amounts else 0.0
+
     # ── Daily breakdown ────────────────────────────────────────────────────
     daily: List[DayPoint] = []
     current = date_from
@@ -158,6 +188,8 @@ def get_summary(
         calote_clients=calote_clients,
         auto_approved=auto_approved,
         duplicates=duplicates,
+        total_amount=total_amount,
+        avg_amount=avg_amount,
         daily=daily,
         hourly=hourly,
     )

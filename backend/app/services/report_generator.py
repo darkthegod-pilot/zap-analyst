@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, date, timedelta
 from typing import Optional
 
@@ -23,6 +24,17 @@ def _format_brl(amount_str: Optional[str]) -> str:
     return amount_str
 
 
+def _parse_amount(s: Optional[str]) -> float:
+    if not s:
+        return 0.0
+    cleaned = s.replace("R$", "").replace(".", "").replace(",", ".").strip()
+    m = re.search(r"[\d.]+", cleaned)
+    try:
+        return float(m.group()) if m else 0.0
+    except ValueError:
+        return 0.0
+
+
 def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
     if target_date is None:
         target_date = datetime.now(BRT).date()
@@ -42,6 +54,15 @@ def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
     suspicious = sum(1 for r in receipts if r.status == ReceiptStatus.suspicious)
     pending = sum(1 for r in receipts if r.status == ReceiptStatus.pending)
 
+    # Calculate total R$ from approved receipts
+    approved_receipts = [r for r in receipts if r.status == ReceiptStatus.approved]
+    total_amount = sum(
+        _parse_amount(r.analysis.amount)
+        for r in approved_receipts
+        if r.analysis and r.analysis.amount
+    )
+    amount_str = f"R$ {total_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
     # Collect pending/suspicious clients for mention
     need_review = [
         r for r in receipts if r.status in (ReceiptStatus.suspicious, ReceiptStatus.pending)
@@ -55,10 +76,11 @@ def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
         f"📊 *Relatório DarkCred — {date_str}*",
         "",
         f"✅ Aprovados: {approved}",
+        f"💰 Total recebido: {amount_str}",
         f"❌ Rejeitados: {rejected}",
         f"⚠️ Suspeitos/Revisão: {suspicious}",
         f"⏳ Pendentes: {pending}",
-        f"📬 Total recebido: {total}",
+        f"📬 Comprovantes: {total}",
     ]
 
     if need_review:

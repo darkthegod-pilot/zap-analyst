@@ -22,6 +22,7 @@ class ClientResponse(ClientBase):
     calote: bool = False
     days_overdue: int = 0
     receipts_count: Optional[int] = 0
+    notes: Optional[str] = None
 
     class Config:
         from_attributes = True

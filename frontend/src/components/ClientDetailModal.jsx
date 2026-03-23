@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X, Flame, TrendingUp } from 'lucide-react'
+import { X, Flame, TrendingUp, FileText, Pencil, Check } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import toast from 'react-hot-toast'
 import { api } from '../api'
 
 /* ─── Score Arc (same DNA as ConfidenceArc) ─────── */
@@ -68,10 +70,52 @@ function DayCell({ item }) {
   )
 }
 
+/* ─── Score history helpers ─────────────────────── */
+const SCORE_BONUS = {
+  paid_early: 40, paid_on_time: 30, paid_normal: 5,
+  paid_late: -50, missed: -50,
+}
+
+function buildScoreSeries(history, currentScore) {
+  if (!history.length) return []
+  let s = currentScore
+  const points = []
+  for (let i = history.length - 1; i >= 0; i--) {
+    const item = history[i]
+    if (!['sunday', 'future', 'unknown'].includes(item.status)) {
+      points.unshift({
+        date: item.date.slice(5), // MM-DD
+        score: Math.max(0, Math.min(1000, s)),
+      })
+      const delta = SCORE_BONUS[item.status] ?? 0
+      s = Math.max(0, Math.min(1000, s - delta))
+    }
+  }
+  return points
+}
+
+/* ─── Score chart tooltip ────────────────────────── */
+function ScoreTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const score = payload[0]?.value
+  return (
+    <div className="rounded-[6px] px-2 py-1.5 text-[11px]"
+      style={{ background: '#121D35', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.15)', color: '#E8EEF8' }}>
+      <p className="text-ink3 mb-0.5">{label}</p>
+      <p className="font-mono font-bold" style={{
+        color: score >= 800 ? '#10B981' : score >= 500 ? '#F59E0B' : '#EF4444'
+      }}>{score}</p>
+    </div>
+  )
+}
+
 /* ─── MAIN ───────────────────────────────────────── */
-export default function ClientDetailModal({ client, onClose }) {
-  const [scoreData, setScoreData] = useState(null)
-  const [loading,   setLoading]   = useState(true)
+export default function ClientDetailModal({ client, onClose, onUpdated }) {
+  const [scoreData,   setScoreData]   = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [editingNote, setEditingNote] = useState(false)
+  const [noteText,    setNoteText]    = useState(client.notes || '')
+  const [savingNote,  setSavingNote]  = useState(false)
 
   useEffect(() => {
     api.getClientScore(client.id)
@@ -80,15 +124,30 @@ export default function ClientDetailModal({ client, onClose }) {
       .finally(() => setLoading(false))
   }, [client.id])
 
+  async function saveNote() {
+    setSavingNote(true)
+    try {
+      await api.updateClientNotes(client.id, noteText)
+      toast.success('Anotação salva')
+      setEditingNote(false)
+      onUpdated?.()
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const score  = scoreData?.score  ?? client.score  ?? 1000
-  const streak = scoreData?.streak ?? client.streak ?? 0
+  const score   = scoreData?.score  ?? client.score  ?? 1000
+  const streak  = scoreData?.streak ?? client.streak ?? 0
   const history = scoreData?.history ?? []
+  const scoreSeries = buildScoreSeries(history, score)
 
   const onTime  = history.filter(d => ['paid_early','paid_on_time','paid_normal'].includes(d.status)).length
   const late    = history.filter(d => d.status === 'paid_late').length
@@ -223,6 +282,97 @@ export default function ClientDetailModal({ client, onClose }) {
                   ))}
                 </div>
               </>
+            )}
+          </div>
+
+          {/* Score evolution chart */}
+          {!loading && scoreSeries.length > 1 && (
+            <div className="space-y-2">
+              <p className="section-title flex items-center gap-1.5">
+                <TrendingUp size={11} /> Evolução do score
+              </p>
+              <div
+                className="rounded-[10px] p-3"
+                style={{ background: 'rgba(100,150,255,0.03)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+              >
+                <ResponsiveContainer width="100%" height={100}>
+                  <LineChart data={scoreSeries}>
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 8, fill: '#3D4E72' }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={Math.floor(scoreSeries.length / 4)}
+                    />
+                    <YAxis hide domain={[0, 1000]} />
+                    <Tooltip content={<ScoreTooltip />} cursor={{ stroke: 'rgba(16,185,129,0.2)' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke={score >= 800 ? '#10B981' : score >= 500 ? '#F59E0B' : '#EF4444'}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Client notes */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="section-title flex items-center gap-1.5">
+                <FileText size={11} /> Anotações
+              </p>
+              {!editingNote && (
+                <button
+                  onClick={() => { setEditingNote(true); setNoteText(client.notes || '') }}
+                  className="text-ink4 hover:text-ink3 transition flex items-center gap-1 text-[11px]"
+                >
+                  <Pencil size={11} />
+                  {client.notes ? 'Editar' : 'Adicionar'}
+                </button>
+              )}
+            </div>
+            {editingNote ? (
+              <div className="space-y-2">
+                <textarea
+                  className="input w-full text-[12px] resize-none"
+                  rows={3}
+                  placeholder="Observações sobre este cliente…"
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveNote}
+                    disabled={savingNote}
+                    className="btn-ok btn-sm flex-1"
+                  >
+                    <Check size={12} />
+                    Salvar
+                  </button>
+                  <button
+                    onClick={() => { setEditingNote(false); setNoteText(client.notes || '') }}
+                    disabled={savingNote}
+                    className="btn-ghost btn-sm flex-1"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : client.notes ? (
+              <div
+                className="rounded-[8px] p-3 text-[12px] text-ink2 leading-relaxed italic"
+                style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.08)' }}
+              >
+                {client.notes}
+              </div>
+            ) : (
+              <p className="text-[12px] text-ink4 italic">Nenhuma anotação.</p>
             )}
           </div>
 

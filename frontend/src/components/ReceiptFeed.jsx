@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react'
-import { FileStack, CheckCircle, XCircle, X, Loader2 } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { FileStack, CheckCircle, XCircle, X, Loader2, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
@@ -29,6 +29,8 @@ export default function ReceiptFeed({ onRefreshStats }) {
   const [loading,  setLoading]  = useState(true)
   const [selected, setSelected] = useState(new Set())
   const [bulkLoad, setBulkLoad] = useState(null) // 'approve' | 'reject' | null
+  const [searchQ,  setSearchQ]  = useState('')
+  const searchTimer = useRef(null)
 
   const selectionMode = selected.size > 0
 
@@ -38,16 +40,22 @@ export default function ReceiptFeed({ onRefreshStats }) {
         status:    status || undefined,
         date_from: date.date_from,
         date_to:   date.date_to,
+        q: searchQ || undefined,
         limit: PAGE, offset,
       })
       setData(r)
     } finally {
       setLoading(false)
     }
-  }, [status, date.date_from, date.date_to, offset])
+  }, [status, date.date_from, date.date_to, searchQ, offset])
 
-  useEffect(() => { setOffset(0) }, [status, date.date_from, date.date_to])
+  useEffect(() => { setOffset(0) }, [status, date.date_from, date.date_to, searchQ])
   usePolling(load, 6000)
+
+  function handleSearch(val) {
+    clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => setSearchQ(val), 300)
+  }
 
   function refresh() { load(); onRefreshStats?.() }
 
@@ -91,6 +99,17 @@ export default function ReceiptFeed({ onRefreshStats }) {
         customTo={date.date_to}
         onChange={d => { setDate(d); setOffset(0) }}
       />
+
+      {/* Search */}
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink4 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Buscar por cliente (nome ou telefone)…"
+          className="input w-full pl-8 text-[13px]"
+          onChange={e => handleSearch(e.target.value)}
+        />
+      </div>
 
       {/* Status filter */}
       <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>

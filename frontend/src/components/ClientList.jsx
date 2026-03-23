@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react'
-import { Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Play } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Play, Search, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
@@ -49,30 +49,38 @@ function Avatar({ name, phone }) {
 }
 
 export default function ClientList() {
-  const [date,       setDate]       = useState({ preset: 'today', ...TODAY })
-  const [offset,     setOffset]     = useState(0)
-  const [data,       setData]       = useState({ items: [], total: 0 })
-  const [loading,    setLoading]    = useState(true)
-  const [editingId,   setEditingId]   = useState(null)
-  const [editName,    setEditName]    = useState('')
-  const [showAdd,     setShowAdd]     = useState(false)
+  const [date,         setDate]         = useState({ preset: 'today', ...TODAY })
+  const [offset,       setOffset]       = useState(0)
+  const [data,         setData]         = useState({ items: [], total: 0 })
+  const [loading,      setLoading]      = useState(true)
+  const [editingId,    setEditingId]    = useState(null)
+  const [editName,     setEditName]     = useState('')
+  const [showAdd,      setShowAdd]      = useState(false)
   const [detailClient, setDetailClient] = useState(null)
+  const [searchQ,      setSearchQ]      = useState('')
+  const searchTimer = useRef(null)
 
   const load = useCallback(async () => {
     try {
       const r = await api.getClients({
         date_from: date.date_from,
         date_to:   date.date_to,
+        q: searchQ || undefined,
         limit: PAGE, offset,
       })
       setData(r)
     } finally {
       setLoading(false)
     }
-  }, [date.date_from, date.date_to, offset])
+  }, [date.date_from, date.date_to, searchQ, offset])
 
-  useEffect(() => { setOffset(0) }, [date.date_from, date.date_to])
+  useEffect(() => { setOffset(0) }, [date.date_from, date.date_to, searchQ])
   usePolling(load, 8000)
+
+  function handleSearch(val) {
+    clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => setSearchQ(val), 300)
+  }
 
   async function deleteClient(id, label) {
     if (!window.confirm(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) return
@@ -126,6 +134,17 @@ export default function ClientList() {
           <UserPlus size={12} />
           Adicionar
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink4 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Buscar por nome ou telefone…"
+          className="input w-full pl-8 text-[13px]"
+          onChange={e => handleSearch(e.target.value)}
+        />
       </div>
 
       {/* Tip */}
@@ -219,6 +238,9 @@ export default function ClientList() {
                         >
                           <Pencil size={11} />
                         </button>
+                        {c.notes && (
+                          <FileText size={11} className="text-ink4 shrink-0" title={c.notes} />
+                        )}
                       </div>
                     )}
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -325,6 +347,7 @@ export default function ClientList() {
         <ClientDetailModal
           client={detailClient}
           onClose={() => setDetailClient(null)}
+          onUpdated={load}
         />
       )}
     </div>

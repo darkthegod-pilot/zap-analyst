@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.client import Client
 from app.models.database import get_db
-from app.models.receipt import Receipt, ReceiptStatus
+from app.models.receipt import Receipt, Analysis, ReceiptStatus
 from app.schemas.receipt import (
     PaginatedReceipts,
     ReceiptResponse,
@@ -44,19 +45,25 @@ def list_receipts(
     status: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    q: Optional[str] = None,
     limit: int = PAGE_SIZE,
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Receipt)
+    query = db.query(Receipt).join(Client, Receipt.client_id == Client.id, isouter=True)
     if status:
         try:
-            q = q.filter(Receipt.status == ReceiptStatus(status))
+            query = query.filter(Receipt.status == ReceiptStatus(status))
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Status inválido: {status}")
-    q = _apply_date_filters(q, date_from, date_to)
-    total = q.count()
-    items = q.order_by(Receipt.received_at.desc()).offset(offset).limit(limit).all()
+    query = _apply_date_filters(query, date_from, date_to)
+    if q:
+        q_like = f"%{q}%"
+        query = query.filter(
+            or_(Client.name.ilike(q_like), Client.phone.ilike(q_like))
+        )
+    total = query.count()
+    items = query.order_by(Receipt.received_at.desc()).offset(offset).limit(limit).all()
     return PaginatedReceipts(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -130,6 +137,31 @@ def reject_receipt(
     db.commit()
     db.refresh(receipt)
     return receipt
+
+
+@router.post("/{receipt_id}/reanalyze")
+async def reanalyze_receipt(
+    receipt_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Comprovante não encontrado")
+
+    receipt.status = ReceiptStatus.pending
+    receipt.auto_processed = False
+
+    analysis = db.query(Analysis).filter(Analysis.receipt_id == receipt_id).first()
+    if analysis:
+        analysis.error = None
+
+    db.commit()
+
+    from app.services.analyzer import analyze_receipt
+    background_tasks.add_task(analyze_receipt, receipt_id, db)
+
+    return {"ok": True}
 
 
 class BulkActionBody(BaseModel):

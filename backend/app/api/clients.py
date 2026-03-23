@@ -4,6 +4,7 @@ from typing import List, Optional
 import pytz
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
@@ -51,14 +52,20 @@ def _to_response(c: Client) -> ClientResponse:
 def list_clients(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    q: Optional[str] = None,
     limit: int = PAGE_SIZE,
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Client)
-    q = _apply_date_filters(q, date_from, date_to)
-    total = q.count()
-    clients = q.order_by(Client.registered_at.desc()).offset(offset).limit(limit).all()
+    query = db.query(Client)
+    query = _apply_date_filters(query, date_from, date_to)
+    if q:
+        q_like = f"%{q}%"
+        query = query.filter(
+            or_(Client.name.ilike(q_like), Client.phone.ilike(q_like))
+        )
+    total = query.count()
+    clients = query.order_by(Client.registered_at.desc()).offset(offset).limit(limit).all()
     return PaginatedClients(items=[_to_response(c) for c in clients], total=total, limit=limit, offset=offset)
 
 
@@ -128,6 +135,16 @@ def update_client_name(client_id: int, name: str, db: Session = Depends(get_db))
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     client.name = name
+    db.commit()
+    return {"ok": True}
+
+
+@router.patch("/{client_id}/notes")
+def update_client_notes(client_id: int, notes: str = "", db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    client.notes = notes.strip() or None
     db.commit()
     return {"ok": True}
 

@@ -1,0 +1,24 @@
+{
+  "name": "DarkCred ZAP Analyst",
+  "short_name": "DarkCred",
+  "description": "Sistema de verificação de comprovantes por IA via WhatsApp",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080D18",
+  "theme_color": "#10B981",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

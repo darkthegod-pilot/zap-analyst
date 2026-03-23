@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   X, Building2, DollarSign, CalendarDays, Hash,
   ArrowUp, ArrowDown, AlertTriangle, Shield, Copy, Check,
-  CheckCircle, XCircle, Loader2, ImageOff, ExternalLink,
+  CheckCircle, XCircle, Loader2, ImageOff, ExternalLink, RefreshCw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import StatusBadge from './StatusBadge'
@@ -99,9 +99,11 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
   const [loading,      setLoading]      = useState(null)
   const [copied,       setCopied]       = useState(false)
   const [previewOpen,  setPreviewOpen]  = useState(false)
+  const [reanalyzing,  setReanalyzing]  = useState(false)
 
   const a        = receipt.analysis
   const canAct   = receipt.status === 'pending' || receipt.status === 'suspicious'
+  const canReanalyze = receipt.status === 'suspicious' || receipt.status === 'pending' || a?.error
   const decision = buildDecision(receipt)
 
   const imgUrl = receipt.image_path
@@ -129,6 +131,20 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
       toast.error(e.message)
     } finally {
       setLoading(null)
+    }
+  }
+
+  async function reanalyze() {
+    setReanalyzing(true)
+    try {
+      await api.reanalyzeReceipt(receipt.id)
+      toast.success('Re-análise iniciada. Aguarde...')
+      onRefresh?.()
+      onClose()
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setReanalyzing(false)
     }
   }
 
@@ -316,7 +332,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
               <div className="flex gap-3 pt-1 pb-2">
                 <button
                   onClick={() => act('approve')}
-                  disabled={!!loading}
+                  disabled={!!loading || reanalyzing}
                   className="btn-ok flex-1"
                 >
                   {loading === 'approve' ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
@@ -324,11 +340,28 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                 </button>
                 <button
                   onClick={() => act('reject')}
-                  disabled={!!loading}
+                  disabled={!!loading || reanalyzing}
                   className="btn-danger flex-1"
                 >
                   {loading === 'reject' ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Rejeitar
+                </button>
+              </div>
+            )}
+
+            {/* Re-analyze button */}
+            {canReanalyze && !receipt.is_duplicate && (
+              <div className="pb-2">
+                <button
+                  onClick={reanalyze}
+                  disabled={reanalyzing || !!loading}
+                  className="btn-ghost w-full flex items-center justify-center gap-2 text-[12px]"
+                >
+                  {reanalyzing
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : <RefreshCw size={13} />
+                  }
+                  Re-analisar com IA
                 </button>
               </div>
             )}

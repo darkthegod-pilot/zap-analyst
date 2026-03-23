@@ -27,6 +27,7 @@ ALLOWED_KEYS = {
     "admin_phone",
     "auto_approve_threshold",
     "base_url",
+    "dashboard_pin",
 }
 
 
@@ -57,6 +58,7 @@ def get_effective_settings(db: Session) -> Dict[str, Any]:
         "admin_phone":            db_vals.get("admin_phone",            cfg.admin_phone),
         "auto_approve_threshold": db_vals.get("auto_approve_threshold", str(cfg.auto_approve_threshold)),
         "base_url":               db_vals.get("base_url",               cfg.base_url),
+        "dashboard_pin":          db_vals.get("dashboard_pin",          "4344"),
     }
     return result
 
