@@ -9,7 +9,7 @@ import os
 
 from app.core.config import get_settings
 from app.models.database import create_tables, SessionLocal
-from app.models import client, receipt  # noqa: F401 – register models
+from app.models import client, receipt, daily_payment  # noqa: F401 – register models
 from app.api import webhook, receipts, clients, reports
 from app.services.scheduler import start_scheduler, stop_scheduler
 

@@ -14,6 +14,7 @@ from app.schemas.receipt import (
     ReceiptStatusUpdate,
     StatsResponse,
 )
+from app.services.score_calculator import on_receipt_approved
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 
@@ -109,6 +110,7 @@ def approve_receipt(
         receipt.notes = body.notes
     db.commit()
     db.refresh(receipt)
+    on_receipt_approved(receipt.id, db)
     return receipt
 
 
@@ -145,4 +147,9 @@ def bulk_action(body: BulkActionBody, db: Session = Depends(get_db)):
         synchronize_session=False,
     )
     db.commit()
+
+    if body.action == "approve":
+        for rid in body.ids:
+            on_receipt_approved(rid, db)
+
     return {"ok": True, "updated": len(body.ids)}

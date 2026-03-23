@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import uuid
@@ -99,7 +100,7 @@ def _register_client(phone: str, db: Session) -> Client:
 
 
 async def _save_and_analyze(receipt_id: int, image_url: str, db: Session):
-    """Download image, save locally, then run AI analysis."""
+    """Download image, save locally, compute hash, check duplicate, then run AI analysis."""
     from app.models.database import SessionLocal
     # Create a fresh DB session for background task
     bg_db = SessionLocal()
@@ -108,20 +109,44 @@ async def _save_and_analyze(receipt_id: int, image_url: str, db: Session):
         if not receipt:
             return
 
+        img_bytes = None
+
         # Download and save
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 resp = await client.get(image_url, follow_redirects=True)
                 resp.raise_for_status()
+                img_bytes = resp.content
                 content_type = resp.headers.get("content-type", "image/jpeg")
                 ext = _ext_from_mime(content_type)
                 filename = f"{uuid.uuid4()}{ext}"
                 save_path = Path(settings.upload_dir) / filename
-                save_path.write_bytes(resp.content)
+                save_path.write_bytes(img_bytes)
                 receipt.image_path = str(save_path)
                 bg_db.commit()
         except Exception as e:
             logger.warning(f"Could not save image locally: {e} — will use URL")
+
+        # Compute SHA-256 hash and check for duplicates
+        if img_bytes:
+            img_hash = hashlib.sha256(img_bytes).hexdigest()
+            receipt.image_hash = img_hash
+
+            dup = bg_db.query(Receipt).filter(
+                Receipt.image_hash == img_hash,
+                Receipt.id != receipt_id,
+            ).first()
+
+            if dup:
+                receipt.is_duplicate   = True
+                receipt.status         = ReceiptStatus.rejected
+                receipt.notes          = f"Comprovante duplicado — hash idêntica ao comprovante #{dup.id}"
+                receipt.auto_processed = True
+                bg_db.commit()
+                logger.warning(f"Receipt #{receipt_id} rejected as duplicate of #{dup.id}")
+                return  # skip AI analysis
+
+            bg_db.commit()
 
         await analyze_receipt(receipt_id, bg_db)
     finally:

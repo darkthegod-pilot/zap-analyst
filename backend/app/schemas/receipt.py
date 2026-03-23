@@ -38,6 +38,8 @@ class ReceiptResponse(BaseModel):
     client: Optional[ClientSummary] = None
     image_url: Optional[str] = None
     image_path: Optional[str] = None
+    image_hash: Optional[str] = None
+    is_duplicate: bool = False
     received_at: datetime
     status: ReceiptStatus
     auto_processed: bool

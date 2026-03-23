@@ -1,13 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import List, Optional
 
+import pytz
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
 from app.models.client import Client
-from app.schemas.client import ClientCreate, ClientResponse
+from app.models.daily_payment import DailyPayment
+from app.schemas.client import ClientCreate, ClientResponse, ClientScoreResponse, PaymentHistoryItem
+
+BRT = pytz.timezone("America/Sao_Paulo")
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
@@ -126,3 +130,42 @@ def update_client_name(client_id: int, name: str, db: Session = Depends(get_db))
     client.name = name
     db.commit()
     return {"ok": True}
+
+
+@router.get("/{client_id}/score", response_model=ClientScoreResponse)
+def get_client_score(client_id: int, db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+    today = datetime.now(BRT).date()
+    start = today - timedelta(days=29)
+
+    records = {
+        dp.payment_date: dp
+        for dp in db.query(DailyPayment).filter(
+            DailyPayment.client_id    == client_id,
+            DailyPayment.payment_date >= start,
+        ).all()
+    }
+
+    history: List[PaymentHistoryItem] = []
+    for i in range(29, -1, -1):
+        d = today - timedelta(days=i)
+        if d.weekday() == 6:  # Sunday
+            history.append(PaymentHistoryItem(date=str(d), status="sunday", penalty=0))
+        elif d in records:
+            r = records[d]
+            history.append(PaymentHistoryItem(date=str(d), status=r.status, penalty=r.penalty or 0))
+        elif d < today:
+            # Past business day with no record — treated as unknown (may be before registration)
+            history.append(PaymentHistoryItem(date=str(d), status="unknown", penalty=0))
+        else:
+            history.append(PaymentHistoryItem(date=str(d), status="future", penalty=0))
+
+    return ClientScoreResponse(
+        client_id=client_id,
+        score=client.score if client.score is not None else 1000,
+        streak=client.streak if client.streak is not None else 0,
+        history=history,
+    )

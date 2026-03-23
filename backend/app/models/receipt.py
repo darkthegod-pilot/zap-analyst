@@ -19,6 +19,8 @@ class Receipt(Base):
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     image_url = Column(Text, nullable=True)
     image_path = Column(Text, nullable=True)
+    image_hash = Column(String(64), nullable=True, index=True)
+    is_duplicate = Column(Boolean, default=False)
     received_at = Column(DateTime, default=datetime.utcnow)
     status = Column(SAEnum(ReceiptStatus), default=ReceiptStatus.pending)
     auto_processed = Column(Boolean, default=False)

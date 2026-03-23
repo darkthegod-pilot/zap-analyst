@@ -13,5 +13,8 @@ class Client(Base):
     registered_at = Column(DateTime, default=datetime.utcnow)
     active = Column(Boolean, default=True)
     frozen = Column(Boolean, default=False)
+    score  = Column(Integer, default=1000)
+    streak = Column(Integer, default=0)
 
     receipts = relationship("Receipt", back_populates="client")
+    daily_payments = relationship("DailyPayment", back_populates="client", cascade="all, delete-orphan")

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { UserX, Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Play } from 'lucide-react'
+import { Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Play } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
@@ -9,6 +9,7 @@ import Pagination        from './Pagination'
 import EmptyState        from './EmptyState'
 import { SkeletonList }  from './Skeleton'
 import AddClientModal    from './AddClientModal'
+import ClientDetailModal from './ClientDetailModal'
 
 const PAGE  = 20
 const TODAY = presetToDates('today')
@@ -52,9 +53,10 @@ export default function ClientList() {
   const [offset,     setOffset]     = useState(0)
   const [data,       setData]       = useState({ items: [], total: 0 })
   const [loading,    setLoading]    = useState(true)
-  const [editingId,  setEditingId]  = useState(null)
-  const [editName,   setEditName]   = useState('')
-  const [showAdd,    setShowAdd]    = useState(false)
+  const [editingId,   setEditingId]   = useState(null)
+  const [editName,    setEditName]    = useState('')
+  const [showAdd,     setShowAdd]     = useState(false)
+  const [detailClient, setDetailClient] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -174,7 +176,7 @@ export default function ClientList() {
               return (
                 <div
                   key={c.id}
-                  className="rounded-[10px] p-3 flex items-center gap-3 transition-colors duration-150"
+                  className="rounded-[10px] p-3 flex items-center gap-3 transition-colors duration-150 cursor-pointer active:opacity-80"
                   style={{
                     background: '#0D1525',
                     boxShadow: isFrozen
@@ -182,12 +184,13 @@ export default function ClientList() {
                       : '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
                     opacity: isFrozen ? 0.65 : 1,
                   }}
+                  onClick={() => setDetailClient(c)}
                 >
                   {/* Avatar */}
                   <Avatar name={c.name} phone={c.phone} />
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                     {editingId === c.id ? (
                       <div className="flex items-center gap-2">
                         <input
@@ -249,16 +252,31 @@ export default function ClientList() {
                     </p>
                   </div>
 
-                  {/* Receipt count */}
-                  <div className="text-center shrink-0 min-w-[44px]">
-                    <p className="font-mono font-black text-[18px] tabular lining text-gradient-brand">
-                      {c.receipts_count ?? 0}
-                    </p>
-                    <p className="text-[9px] text-ink3 uppercase tracking-wide leading-none">comp.</p>
+                  {/* Score + Receipt count */}
+                  <div className="text-center shrink-0 space-y-1.5" onClick={e => e.stopPropagation()}>
+                    <div className="min-w-[44px]">
+                      <p className="font-mono font-black text-[18px] tabular lining text-gradient-brand">
+                        {c.receipts_count ?? 0}
+                      </p>
+                      <p className="text-[9px] text-ink3 uppercase tracking-wide leading-none">comp.</p>
+                    </div>
+                    <div className="min-w-[44px]">
+                      <p
+                        className="font-mono font-black text-[14px] tabular lining"
+                        style={{
+                          color: (c.score ?? 1000) >= 800 ? '#10B981'
+                               : (c.score ?? 1000) >= 500 ? '#F59E0B'
+                               : '#EF4444'
+                        }}
+                      >
+                        {c.score ?? 1000}
+                      </p>
+                      <p className="text-[9px] text-ink3 uppercase tracking-wide leading-none">score</p>
+                    </div>
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                     {isFrozen ? (
                       <button
                         onClick={() => activateClient(c.id, label)}
@@ -299,6 +317,14 @@ export default function ClientList() {
         <AddClientModal
           onClose={() => setShowAdd(false)}
           onCreated={() => { load(); setDate({ preset: 'all', date_from: null, date_to: null }) }}
+        />
+      )}
+
+      {/* Client detail / score modal */}
+      {detailClient && (
+        <ClientDetailModal
+          client={detailClient}
+          onClose={() => setDetailClient(null)}
         />
       )}
     </div>

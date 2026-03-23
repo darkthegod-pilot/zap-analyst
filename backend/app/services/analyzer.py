@@ -124,6 +124,11 @@ async def analyze_receipt(receipt_id: int, db: Session) -> None:
 
         db.commit()
 
+        # Update client score if auto-approved
+        if receipt.status == ReceiptStatus.approved:
+            from app.services.score_calculator import on_receipt_approved
+            on_receipt_approved(receipt_id, db)
+
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse OpenAI response: {e}")
         analysis.error = f"Erro ao interpretar resposta da IA: {e}"
