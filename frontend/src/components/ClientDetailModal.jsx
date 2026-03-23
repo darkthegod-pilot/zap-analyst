@@ -115,6 +115,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
   const [loading,     setLoading]     = useState(true)
   const [editingNote, setEditingNote] = useState(false)
   const [noteText,    setNoteText]    = useState(client.notes || '')
+  const [localNotes,  setLocalNotes]  = useState(client.notes || '')
   const [savingNote,  setSavingNote]  = useState(false)
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
     try {
       await api.updateClientNotes(client.id, noteText)
       toast.success('Anotação salva')
+      setLocalNotes(noteText)
       setEditingNote(false)
       onUpdated?.()
     } catch (e) {
@@ -328,11 +330,11 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
               </p>
               {!editingNote && (
                 <button
-                  onClick={() => { setEditingNote(true); setNoteText(client.notes || '') }}
+                  onClick={() => { setEditingNote(true); setNoteText(localNotes) }}
                   className="text-ink4 hover:text-ink3 transition flex items-center gap-1 text-[11px]"
                 >
                   <Pencil size={11} />
-                  {client.notes ? 'Editar' : 'Adicionar'}
+                  {localNotes ? 'Editar' : 'Adicionar'}
                 </button>
               )}
             </div>
@@ -356,7 +358,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
                     Salvar
                   </button>
                   <button
-                    onClick={() => { setEditingNote(false); setNoteText(client.notes || '') }}
+                    onClick={() => { setEditingNote(false); setNoteText(localNotes) }}
                     disabled={savingNote}
                     className="btn-ghost btn-sm flex-1"
                   >
@@ -364,12 +366,12 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
                   </button>
                 </div>
               </div>
-            ) : client.notes ? (
+            ) : localNotes ? (
               <div
                 className="rounded-[8px] p-3 text-[12px] text-ink2 leading-relaxed italic"
                 style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.08)' }}
               >
-                {client.notes}
+                {localNotes}
               </div>
             ) : (
               <p className="text-[12px] text-ink4 italic">Nenhuma anotação.</p>

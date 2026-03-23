@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CalendarDays, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 const PRESETS = [
   { value: 'today',     label: 'Hoje'    },
@@ -47,6 +48,10 @@ export default function DateFilter({ value = 'today', customFrom, customTo, onCh
 
   function applyCustom() {
     if (!from || !to) return
+    if (from > to) {
+      toast.error('Data inicial não pode ser maior que a data final')
+      return
+    }
     onChange({ preset: 'custom', date_from: from, date_to: to })
   }
 

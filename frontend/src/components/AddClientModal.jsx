@@ -3,9 +3,18 @@ import { X, UserPlus, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '../api'
 
+function maskPhone(v) {
+  const d = v.replace(/\D/g, '').slice(0, 13)
+  if (d.length <= 2)  return d
+  if (d.length <= 7)  return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  if (d.length <= 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9)}`
+}
+
 export default function AddClientModal({ onClose, onCreated }) {
   const [phone, setPhone] = useState('')
   const [name,  setName]  = useState('')
+  const [phoneError, setPhoneError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -16,10 +25,19 @@ export default function AddClientModal({ onClose, onCreated }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  function handlePhoneChange(e) {
+    const masked = maskPhone(e.target.value)
+    setPhone(masked)
+    setPhoneError('')
+  }
+
   async function submit(e) {
     e.preventDefault()
-    const p = phone.trim().replace(/\D/g, '')
-    if (!p) { toast.error('Informe o telefone'); return }
+    const p = phone.replace(/\D/g, '')
+    if (p.length < 10) {
+      setPhoneError('Telefone inválido (mínimo 10 dígitos)')
+      return
+    }
     setLoading(true)
     try {
       await api.createClient({ phone: p, name: name.trim() || undefined })
@@ -65,12 +83,15 @@ export default function AddClientModal({ onClose, onCreated }) {
             <input
               className="input"
               type="tel"
-              placeholder="5511999990000"
+              placeholder="(11) 99999-0000"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={handlePhoneChange}
               autoFocus
             />
-            <p className="text-[10px] text-ink4">Apenas números. Ex: 5511999990000</p>
+            {phoneError
+              ? <p className="text-[10px] font-semibold" style={{ color: '#F87171' }}>{phoneError}</p>
+              : <p className="text-[10px] text-ink4">Ex: (11) 99999-0000 ou +55 (11) 99999-0000</p>
+            }
           </div>
 
           <div className="space-y-1.5">
@@ -94,7 +115,7 @@ export default function AddClientModal({ onClose, onCreated }) {
             </button>
             <button
               type="submit"
-              disabled={loading || !phone.trim()}
+              disabled={loading || phone.replace(/\D/g, '').length < 10}
               className="btn-primary flex-1"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}

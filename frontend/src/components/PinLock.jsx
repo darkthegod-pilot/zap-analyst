@@ -49,12 +49,13 @@ export default function PinLock({ onUnlock }) {
   // Keyboard support
   useEffect(() => {
     function onKey(e) {
+      if (loading) return
       if (e.key >= '0' && e.key <= '9') press(e.key)
       else if (e.key === 'Backspace') del()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [press, del])
+  }, [press, del, loading])
 
   const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫']
 

@@ -84,10 +84,10 @@ export const api = {
     req(`/clients/${id}/deactivate`, { method: 'PATCH' }),
 
   updateClientName: (id, name) =>
-    req(`/clients/${id}/name?name=${encodeURIComponent(name)}`, { method: 'PATCH' }),
+    req(`/clients/${id}/name`, { method: 'PATCH', body: JSON.stringify({ name }) }),
 
   updateClientNotes: (id, notes) =>
-    req(`/clients/${id}/notes?notes=${encodeURIComponent(notes)}`, { method: 'PATCH' }),
+    req(`/clients/${id}/notes`, { method: 'PATCH', body: JSON.stringify({ notes }) }),
 
   // ── Calote ────────────────────────────────────────────────────────────────
   getCaloteClients: ({ limit = 20, offset = 0 } = {}) => {

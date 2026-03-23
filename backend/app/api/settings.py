@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -86,6 +86,18 @@ class SettingsSaveRequest(BaseModel):
     admin_phone:            str | None = None
     auto_approve_threshold: str | None = None
     base_url:               str | None = None
+
+    @validator('auto_approve_threshold')
+    def validate_threshold(cls, v):
+        if v is None:
+            return v
+        try:
+            f = float(v)
+            if not 0.0 <= f <= 1.0:
+                raise ValueError("Deve ser entre 0.0 e 1.0")
+            return str(f)
+        except (ValueError, TypeError):
+            raise ValueError("Valor inválido para threshold. Deve ser entre 0.0 e 1.0")
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────

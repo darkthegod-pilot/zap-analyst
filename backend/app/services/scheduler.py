@@ -42,6 +42,7 @@ def start_scheduler(db_factory):
         trigger=CronTrigger(hour=0, minute=0, timezone=BRT),
         id="daily_report",
         replace_existing=True,
+        max_instances=1,
         name="Daily WhatsApp Report",
     )
 
@@ -50,6 +51,7 @@ def start_scheduler(db_factory):
         trigger=CronTrigger(hour=23, minute=59, day_of_week="mon-sat", timezone=BRT),
         id="missed_payments",
         replace_existing=True,
+        max_instances=1,
         name="Mark Missed Payments",
     )
 

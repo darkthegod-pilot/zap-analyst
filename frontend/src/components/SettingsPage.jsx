@@ -94,6 +94,13 @@ export default function SettingsPage() {
   }
 
   async function save() {
+    if (form.auto_approve_threshold) {
+      const t = parseFloat(form.auto_approve_threshold)
+      if (isNaN(t) || t < 0 || t > 1) {
+        toast.error('Threshold deve ser entre 0.0 e 1.0')
+        return
+      }
+    }
     setSaving(true)
     try {
       await api.saveSettings({

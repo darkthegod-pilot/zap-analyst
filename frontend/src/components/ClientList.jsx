@@ -3,6 +3,7 @@ import { Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Pl
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
+import { formatPhone }   from '../utils/format'
 import { presetToDates } from './DateFilter'
 import DateFilter        from './DateFilter'
 import Pagination        from './Pagination'
@@ -75,6 +76,7 @@ export default function ClientList() {
   }, [date.date_from, date.date_to, searchQ, offset])
 
   useEffect(() => { setOffset(0) }, [date.date_from, date.date_to, searchQ])
+  useEffect(() => () => clearTimeout(searchTimer.current), [])
   usePolling(load, 8000)
 
   function handleSearch(val) {
@@ -245,7 +247,7 @@ export default function ClientList() {
                     )}
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {c.name && (
-                        <span className="font-mono text-[11px] text-ink3">{c.phone}</span>
+                        <span className="font-mono text-[11px] text-ink3">{formatPhone(c.phone)}</span>
                       )}
                       {/* Status badge */}
                       {isFrozen ? (

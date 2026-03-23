@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -154,11 +155,13 @@ async def _save_and_analyze(receipt_id: int, image_url: str, db: Session):
 
 
 def _extract_phone(body: dict) -> str | None:
-    """Extract normalized phone from various ZAPI payload shapes."""
+    """Extract normalized phone (digits only) from various ZAPI payload shapes."""
     for key in ("phone", "chatId", "from", "sender"):
         val = body.get(key, "")
         if isinstance(val, str) and val:
-            return val.replace("@c.us", "").replace("+", "").replace("-", "").replace(" ", "")
+            digits = re.sub(r'\D', '', val.replace("@c.us", ""))
+            if len(digits) >= 10:
+                return digits
     return None
 
 

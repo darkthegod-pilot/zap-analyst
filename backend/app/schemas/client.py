@@ -1,11 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional, List
 
 
 class ClientBase(BaseModel):
-    phone: str
-    name: Optional[str] = None
+    phone: str = Field(..., min_length=10, max_length=15)
+    name: Optional[str] = Field(None, max_length=100)
+
+    @validator('phone')
+    def phone_digits_only(cls, v):
+        if not v.isdigit():
+            raise ValueError('Telefone deve conter apenas dígitos')
+        return v
 
 
 class ClientCreate(ClientBase):

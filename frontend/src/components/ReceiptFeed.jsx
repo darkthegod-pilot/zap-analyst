@@ -50,6 +50,7 @@ export default function ReceiptFeed({ onRefreshStats }) {
   }, [status, date.date_from, date.date_to, searchQ, offset])
 
   useEffect(() => { setOffset(0) }, [status, date.date_from, date.date_to, searchQ])
+  useEffect(() => () => clearTimeout(searchTimer.current), [])
   usePolling(load, 6000)
 
   function handleSearch(val) {

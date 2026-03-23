@@ -3,6 +3,7 @@ import { AlertTriangle, UserCheck, Trash2, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '../api'
 import { usePolling } from '../hooks/usePolling'
+import { formatPhone } from '../utils/format'
 import Pagination from './Pagination'
 import EmptyState from './EmptyState'
 import { SkeletonList } from './Skeleton'
@@ -159,7 +160,7 @@ export default function CalotePage() {
                       </span>
                     </div>
                     {c.name && (
-                      <p className="font-mono text-[11px] text-ink3 mt-0.5">{c.phone}</p>
+                      <p className="font-mono text-[11px] text-ink3 mt-0.5">{formatPhone(c.phone)}</p>
                     )}
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                       <span

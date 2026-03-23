@@ -103,8 +103,8 @@ def get_summary(
         date_from = today - timedelta(days=29)
         date_to   = today
     else:
-        date_from = today
-        date_to   = today
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=f"Período inválido. Use: today, yesterday, week, month")
 
     start_dt = datetime.combine(date_from, datetime.min.time())
     end_dt   = datetime.combine(date_to,   datetime.min.time()) + timedelta(days=1)
@@ -246,7 +246,7 @@ async def send_report_now(db: Session = Depends(get_db)):
 
 
 def _period_to_date(period: str) -> date:
-    today = datetime.utcnow().date()
+    today = datetime.now(BRT).date()
     if period == "yesterday":
         return today - timedelta(days=1)
     return today

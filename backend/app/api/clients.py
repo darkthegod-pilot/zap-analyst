@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import pytz
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,14 @@ class PaginatedClients(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class NameBody(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class NotesBody(BaseModel):
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 def _apply_date_filters(q, date_from: Optional[str], date_to: Optional[str]):
@@ -81,6 +89,19 @@ def create_client(body: ClientCreate, db: Session = Depends(get_db)):
     return _to_response(client)
 
 
+@router.get("/calote", response_model=PaginatedClients)
+def list_calote_clients(
+    limit: int = PAGE_SIZE,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    """List clients flagged as calote (7+ consecutive missed days)."""
+    q = db.query(Client).filter(Client.calote == True)
+    total = q.count()
+    clients_list = q.order_by(Client.days_overdue.desc()).offset(offset).limit(limit).all()
+    return PaginatedClients(items=[_to_response(c) for c in clients_list], total=total, limit=limit, offset=offset)
+
+
 @router.get("/{client_id}", response_model=ClientResponse)
 def get_client(client_id: int, db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.id == client_id).first()
@@ -130,21 +151,21 @@ def deactivate_client(client_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{client_id}/name")
-def update_client_name(client_id: int, name: str, db: Session = Depends(get_db)):
+def update_client_name(client_id: int, body: NameBody, db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
-    client.name = name
+    client.name = body.name.strip()
     db.commit()
     return {"ok": True}
 
 
 @router.patch("/{client_id}/notes")
-def update_client_notes(client_id: int, notes: str = "", db: Session = Depends(get_db)):
+def update_client_notes(client_id: int, body: NotesBody, db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
-    client.notes = notes.strip() or None
+    client.notes = body.notes.strip() if body.notes else None
     db.commit()
     return {"ok": True}
 
@@ -186,19 +207,6 @@ def get_client_score(client_id: int, db: Session = Depends(get_db)):
         streak=client.streak if client.streak is not None else 0,
         history=history,
     )
-
-
-@router.get("/calote", response_model=PaginatedClients)
-def list_calote_clients(
-    limit: int = PAGE_SIZE,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-):
-    """List clients flagged as calote (7+ consecutive missed days)."""
-    q = db.query(Client).filter(Client.calote == True)
-    total = q.count()
-    clients_list = q.order_by(Client.days_overdue.desc()).offset(offset).limit(limit).all()
-    return PaginatedClients(items=[_to_response(c) for c in clients_list], total=total, limit=limit, offset=offset)
 
 
 @router.patch("/{client_id}/remove-calote")

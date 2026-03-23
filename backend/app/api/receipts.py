@@ -139,6 +139,25 @@ def reject_receipt(
     return receipt
 
 
+async def _do_reanalyze(receipt_id: int):
+    from app.models.database import SessionLocal
+    from app.services.analyzer import analyze_receipt
+    db = SessionLocal()
+    try:
+        receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+        if not receipt:
+            return
+        receipt.status = ReceiptStatus.pending
+        receipt.auto_processed = False
+        analysis = db.query(Analysis).filter(Analysis.receipt_id == receipt_id).first()
+        if analysis:
+            analysis.error = None
+        db.commit()
+        await analyze_receipt(receipt_id, db)
+    finally:
+        db.close()
+
+
 @router.post("/{receipt_id}/reanalyze")
 async def reanalyze_receipt(
     receipt_id: int,
@@ -148,19 +167,7 @@ async def reanalyze_receipt(
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
         raise HTTPException(status_code=404, detail="Comprovante não encontrado")
-
-    receipt.status = ReceiptStatus.pending
-    receipt.auto_processed = False
-
-    analysis = db.query(Analysis).filter(Analysis.receipt_id == receipt_id).first()
-    if analysis:
-        analysis.error = None
-
-    db.commit()
-
-    from app.services.analyzer import analyze_receipt
-    background_tasks.add_task(analyze_receipt, receipt_id, db)
-
+    background_tasks.add_task(_do_reanalyze, receipt_id)
     return {"ok": True}
 
 
@@ -171,6 +178,8 @@ class BulkActionBody(BaseModel):
 
 @router.post("/bulk")
 def bulk_action(body: BulkActionBody, db: Session = Depends(get_db)):
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="Nenhum comprovante selecionado")
     if body.action not in ("approve", "reject"):
         raise HTTPException(status_code=400, detail="Ação inválida. Use 'approve' ou 'reject'")
     new_status = ReceiptStatus.approved if body.action == "approve" else ReceiptStatus.rejected
