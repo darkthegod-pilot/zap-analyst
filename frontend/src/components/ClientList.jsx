@@ -223,9 +223,9 @@ export default function ClientList() {
                   {/* Info */}
                   <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                     {editingId === c.id ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 overflow-hidden">
                         <input
-                          className="input py-1 text-[12px] max-w-[150px]"
+                          className="input py-1 text-[12px] flex-1 min-w-0"
                           value={editName}
                           onChange={e => setEditName(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') saveName(c.id); if (e.key === 'Escape') setEditingId(null) }}

@@ -128,7 +128,7 @@ export default function DashboardPage({ stats, onNavigate }) {
             Resumo de hoje
           </p>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Total recebido */}
             <div>
               <p className="text-[10px] text-ink3 font-semibold uppercase tracking-wide mb-1">

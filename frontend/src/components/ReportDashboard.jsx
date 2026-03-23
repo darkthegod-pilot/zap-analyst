@@ -224,26 +224,26 @@ export default function ReportDashboard() {
 
           {/* Extra stats */}
           <div
-            className="rounded-[10px] p-3 grid grid-cols-3 gap-3"
+            className="rounded-[10px] p-2 md:p-3 grid grid-cols-3 gap-1.5 md:gap-3"
             style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
           >
-            <div className="text-center">
-              <p className="font-mono font-black text-[18px] tabular" style={{ color: '#10B981' }}>
+            <div className="text-center py-1">
+              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: '#10B981' }}>
                 {data.total}
               </p>
               <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Total</p>
             </div>
-            <div className="text-center">
-              <p className="font-mono font-black text-[18px] tabular" style={{ color: '#7A8DB5' }}>
+            <div className="text-center py-1">
+              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: '#7A8DB5' }}>
                 {data.auto_approved}
               </p>
-              <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Auto-aprov.</p>
+              <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Auto-apr.</p>
             </div>
-            <div className="text-center">
-              <p className="font-mono font-black text-[18px] tabular" style={{ color: '#F87171' }}>
+            <div className="text-center py-1">
+              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: '#F87171' }}>
                 {data.duplicates}
               </p>
-              <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Duplicados</p>
+              <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Duplic.</p>
             </div>
           </div>
 

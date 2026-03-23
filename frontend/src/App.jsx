@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   FileStack, Users, BarChart3, AlertOctagon, Settings,
   RefreshCw, CheckCircle, AlertTriangle, Clock, XCircle,
-  LogOut, ChevronDown, LayoutDashboard,
+  LogOut, ChevronDown, LayoutDashboard, Menu,
 } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import { usePolling }    from './hooks/usePolling'
@@ -30,7 +30,7 @@ const TODAY = presetToDates('today')
 function StatPill({ Icon, value, label, color, bg, shadow }) {
   return (
     <div
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full shrink-0"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
       style={{ background: bg, boxShadow: shadow }}
     >
       <Icon size={12} style={{ color }} />
@@ -111,7 +111,8 @@ function AvatarMenu({ onLogout, onSettings }) {
 }
 
 export default function App() {
-  const [tab,      setTab]      = useState('home')
+  const [tab,         setTab]         = useState('home')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats,    setStats]    = useState(null)
   const [online,   setOnline]   = useState(true)
   const [spin,     setSpin]     = useState(false)
@@ -187,10 +188,19 @@ export default function App() {
         }}
       />
 
+      {/* ── Sidebar backdrop (mobile only) ────────── */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ══════════════════════════════════════════════
-          SIDEBAR — desktop only
+          SIDEBAR — drawer on mobile, fixed on desktop
       ══════════════════════════════════════════════ */}
-      <aside className="sidebar">
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
 
         {/* Logo */}
         <div className="sidebar-logo">
@@ -216,7 +226,7 @@ export default function App() {
           {NAV_TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
-              onClick={() => setTab(id)}
+              onClick={() => { setTab(id); setSidebarOpen(false) }}
               className={tab === id ? 'sidebar-item sidebar-item-active' : 'sidebar-item'}
             >
               <Icon size={16} />
@@ -231,7 +241,7 @@ export default function App() {
           <p className="sidebar-section-label">Sistema</p>
 
           <button
-            onClick={() => setTab('settings')}
+            onClick={() => { setTab('settings'); setSidebarOpen(false) }}
             className={tab === 'settings' ? 'sidebar-item sidebar-item-active' : 'sidebar-item'}
           >
             <Settings size={16} />
@@ -264,20 +274,18 @@ export default function App() {
         <header className="topbar">
           <div className="topbar-inner">
 
-            {/* Left: mobile logo + page title */}
-            <div className="flex items-center gap-3">
-              {/* Mobile logo (sidebar is hidden on mobile) */}
-              <div
-                className="md:hidden w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0"
-                style={{
-                  background: 'rgba(16,185,129,0.10)',
-                  boxShadow: '0 0 0 1px rgba(16,185,129,0.22)',
-                }}
+            {/* Left: hamburger (mobile) + page title */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Hamburger — mobile only */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="md:hidden btn-ghost shrink-0"
+                aria-label="Abrir menu"
               >
-                <span className="font-mono font-black text-[10px]" style={{ color: '#10B981' }}>DC</span>
-              </div>
-              <div>
-                <h1 className="font-bold text-[15px] leading-none text-ink">{currentTabLabel}</h1>
+                <Menu size={16} />
+              </button>
+              <div className="min-w-0">
+                <h1 className="font-bold text-[15px] leading-none text-ink truncate">{currentTabLabel}</h1>
                 <p className="text-[10px] text-ink3 mt-0.5 hidden md:block">
                   {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
                 </p>
@@ -320,7 +328,7 @@ export default function App() {
           {/* Stats strip — receipts tab only */}
           {tab === 'receipts' && (
             <div
-              className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide"
+              className="flex flex-wrap gap-1.5 px-4 pb-3"
               style={{ borderTop: '0.5px solid rgba(100,150,255,0.05)', paddingTop: '10px' }}
             >
               <StatPill Icon={FileStack}     value={stats?.total}     label="total"  color="#7A8DB5" bg="rgba(100,150,255,0.05)" shadow="0 0 0 0.5px rgba(100,150,255,0.09)" />
