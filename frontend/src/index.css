@@ -1,18 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-950 text-gray-100;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+/* ─── Base ────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    background-color: #0a0a0f;
+    color: #f0f0f8;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #0a0a0f;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar       { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a5a; }
+
+  /* number inputs without arrows */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* date input styling */
+  input[type=date] {
+    color-scheme: dark;
+  }
+
+  /* selection */
+  ::selection {
+    background: #00ff8830;
+    color: #00ff88;
+  }
 }
 
-::-webkit-scrollbar {
-  width: 6px;
+/* ─── Components ──────────────────────────────────── */
+@layer components {
+  /* Glass card */
+  .card {
+    @apply bg-surface rounded-2xl shadow-card border border-surface-border;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:bg-surface-hover hover:shadow-card-hover hover:border-ink-faint cursor-pointer;
+  }
+
+  /* Brand button */
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+           bg-brand text-[#0a0a0f] font-bold text-sm
+           hover:bg-brand-hover active:scale-95
+           transition-all duration-150 select-none;
+  }
+
+  .btn-brand:disabled {
+    @apply opacity-40 cursor-not-allowed active:scale-100;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl
+           bg-transparent text-ink-secondary font-medium text-sm
+           border border-surface-border
+           hover:bg-surface-hover hover:text-ink hover:border-ink-faint
+           active:scale-95 transition-all duration-150 select-none;
+  }
+
+  .btn-ghost:disabled {
+    @apply opacity-40 cursor-not-allowed active:scale-100;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+           bg-status-rejected-bg text-status-rejected font-bold text-sm
+           border border-status-rejected-border
+           hover:bg-[#ff446625] active:scale-95
+           transition-all duration-150 select-none;
+  }
+
+  /* Success button */
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+           bg-status-approved-bg text-status-approved font-bold text-sm
+           border border-status-approved-border
+           hover:bg-[#00ff8825] active:scale-95
+           transition-all duration-150 select-none;
+  }
+
+  /* Input */
+  .input {
+    @apply w-full px-3 py-2.5 rounded-xl bg-surface-raised border border-surface-border
+           text-ink text-sm placeholder-ink-muted
+           focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30
+           transition-all duration-150;
+  }
+
+  /* Chip / filter button */
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+           text-xs font-semibold border
+           transition-all duration-150 cursor-pointer select-none whitespace-nowrap;
+  }
+
+  .chip-default {
+    @apply chip bg-surface-raised border-surface-border text-ink-secondary
+           hover:bg-surface-hover hover:text-ink;
+  }
+
+  .chip-active {
+    @apply chip bg-brand-dim border-brand/40 text-brand;
+  }
+
+  /* Label */
+  .label {
+    @apply text-2xs font-semibold uppercase tracking-widest text-ink-muted;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply text-xs font-bold uppercase tracking-widest text-ink-muted;
+  }
+
+  /* Neon number */
+  .stat-number {
+    @apply text-3xl font-black tabular-nums;
+  }
+
+  /* Mono text */
+  .mono {
+    @apply font-mono text-sm;
+  }
+
+  /* Score bar track */
+  .score-track {
+    @apply h-1.5 rounded-full bg-surface-border overflow-hidden;
+  }
+
+  .score-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-surface-border;
+  }
+
+  /* Animated dot */
+  .dot-live {
+    @apply inline-block w-2 h-2 rounded-full bg-brand animate-pulse-slow;
+  }
+
+  /* Bottom nav item */
+  .nav-item {
+    @apply flex flex-col items-center gap-0.5 px-4 py-2
+           text-ink-muted text-2xs font-semibold
+           transition-colors duration-150 cursor-pointer;
+  }
+
+  .nav-item-active {
+    @apply nav-item text-brand;
+  }
+
+  /* Tag */
+  .tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md
+           text-2xs font-semibold uppercase tracking-wide;
+  }
+
+  /* Skeleton */
+  .skeleton {
+    @apply animate-pulse bg-surface-raised rounded-xl;
+  }
 }
-::-webkit-scrollbar-track {
-  @apply bg-gray-900;
+
+/* ─── Utilities ───────────────────────────────────── */
+@layer utilities {
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #00ff88, #00cc6a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  .glow-brand {
+    box-shadow: 0 0 20px #00ff8830, 0 0 0 1px #00ff8840;
+  }
+
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .truncate-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
 }
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 rounded;
+
+/* ─── Transitions ─────────────────────────────────── */
+.page-enter {
+  animation: slideUp 0.2s ease-out;
+}
+
+/* ─── Toast overrides ─────────────────────────────── */
+.react-hot-toast > div {
+  background: #1a1a26 !important;
+  border: 1px solid #2a2a3a !important;
+  color: #f0f0f8 !important;
+  border-radius: 0.75rem !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.875rem !important;
 }

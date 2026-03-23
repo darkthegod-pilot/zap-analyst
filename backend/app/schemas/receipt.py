@@ -48,6 +48,13 @@ class ReceiptResponse(BaseModel):
         from_attributes = True
 
 
+class PaginatedReceipts(BaseModel):
+    items: List[ReceiptResponse]
+    total: int
+    limit: int
+    offset: int
+
+
 class ReceiptStatusUpdate(BaseModel):
     notes: Optional[str] = None
 

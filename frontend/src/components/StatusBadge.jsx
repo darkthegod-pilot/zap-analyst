@@ -1,14 +1,16 @@
-const STATUS_CONFIG = {
-  approved: { label: 'Aprovado', cls: 'bg-green-900 text-green-300 border border-green-700' },
-  rejected: { label: 'Rejeitado', cls: 'bg-red-900 text-red-300 border border-red-700' },
-  suspicious: { label: 'Suspeito', cls: 'bg-yellow-900 text-yellow-300 border border-yellow-700' },
-  pending: { label: 'Pendente', cls: 'bg-gray-800 text-gray-300 border border-gray-600' },
+const STATUS = {
+  approved:  { label: 'Aprovado',  bg: 'bg-status-approved-bg',   text: 'text-status-approved',   border: 'border-status-approved-border',   dot: 'bg-status-approved'  },
+  rejected:  { label: 'Rejeitado', bg: 'bg-status-rejected-bg',   text: 'text-status-rejected',   border: 'border-status-rejected-border',   dot: 'bg-status-rejected'  },
+  suspicious:{ label: 'Suspeito',  bg: 'bg-status-suspicious-bg', text: 'text-status-suspicious', border: 'border-status-suspicious-border', dot: 'bg-status-suspicious'},
+  pending:   { label: 'Pendente',  bg: 'bg-status-pending-bg',    text: 'text-status-pending',    border: 'border-status-pending-border',    dot: 'bg-status-pending'   },
 }
 
-export default function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending
+export default function StatusBadge({ status, size = 'sm' }) {
+  const cfg = STATUS[status] ?? STATUS.pending
+  const textSize = size === 'xs' ? 'text-2xs' : 'text-xs'
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.cls}`}>
+    <span className={`tag ${cfg.bg} ${cfg.text} border ${cfg.border} ${textSize}`}>
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
       {cfg.label}
     </span>
   )

@@ -1,19 +1,48 @@
+from datetime import datetime, timedelta
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.models.client import Client
 from app.models.database import get_db
 from app.models.receipt import Receipt, ReceiptStatus
-from app.schemas.receipt import ReceiptResponse, ReceiptStatusUpdate, StatsResponse
-from app.models.client import Client
+from app.schemas.receipt import (
+    PaginatedReceipts,
+    ReceiptResponse,
+    ReceiptStatusUpdate,
+    StatsResponse,
+)
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 
+PAGE_SIZE = 20
 
-@router.get("", response_model=List[ReceiptResponse])
+
+def _apply_date_filters(q, date_from: Optional[str], date_to: Optional[str]):
+    """Apply date range filters to a SQLAlchemy query on Receipt.received_at."""
+    if date_from:
+        try:
+            dt = datetime.strptime(date_from, "%Y-%m-%d")
+            q = q.filter(Receipt.received_at >= dt)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            # include the full day
+            dt = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+            q = q.filter(Receipt.received_at < dt)
+        except ValueError:
+            pass
+    return q
+
+
+@router.get("", response_model=PaginatedReceipts)
 def list_receipts(
     status: Optional[str] = None,
-    limit: int = 50,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = PAGE_SIZE,
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
@@ -22,18 +51,27 @@ def list_receipts(
         try:
             q = q.filter(Receipt.status == ReceiptStatus(status))
         except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
-    receipts = q.order_by(Receipt.received_at.desc()).offset(offset).limit(limit).all()
-    return receipts
+            raise HTTPException(status_code=400, detail=f"Status inválido: {status}")
+    q = _apply_date_filters(q, date_from, date_to)
+    total = q.count()
+    items = q.order_by(Receipt.received_at.desc()).offset(offset).limit(limit).all()
+    return PaginatedReceipts(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/stats", response_model=StatsResponse)
-def get_stats(db: Session = Depends(get_db)):
-    total = db.query(Receipt).count()
-    pending = db.query(Receipt).filter(Receipt.status == ReceiptStatus.pending).count()
-    approved = db.query(Receipt).filter(Receipt.status == ReceiptStatus.approved).count()
-    rejected = db.query(Receipt).filter(Receipt.status == ReceiptStatus.rejected).count()
-    suspicious = db.query(Receipt).filter(Receipt.status == ReceiptStatus.suspicious).count()
+def get_stats(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    base = db.query(Receipt)
+    base = _apply_date_filters(base, date_from, date_to)
+
+    total = base.count()
+    pending = base.filter(Receipt.status == ReceiptStatus.pending).count()
+    approved = base.filter(Receipt.status == ReceiptStatus.approved).count()
+    rejected = base.filter(Receipt.status == ReceiptStatus.rejected).count()
+    suspicious = base.filter(Receipt.status == ReceiptStatus.suspicious).count()
     total_clients = db.query(Client).count()
     active_clients = db.query(Client).filter(Client.active == True).count()
     return StatsResponse(
@@ -51,7 +89,7 @@ def get_stats(db: Session = Depends(get_db)):
 def get_receipt(receipt_id: int, db: Session = Depends(get_db)):
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
-        raise HTTPException(status_code=404, detail="Receipt not found")
+        raise HTTPException(status_code=404, detail="Comprovante não encontrado")
     return receipt
 
 
@@ -63,7 +101,7 @@ def approve_receipt(
 ):
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
-        raise HTTPException(status_code=404, detail="Receipt not found")
+        raise HTTPException(status_code=404, detail="Comprovante não encontrado")
     receipt.status = ReceiptStatus.approved
     receipt.auto_processed = False
     if body.notes:
@@ -81,7 +119,7 @@ def reject_receipt(
 ):
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
-        raise HTTPException(status_code=404, detail="Receipt not found")
+        raise HTTPException(status_code=404, detail="Comprovante não encontrado")
     receipt.status = ReceiptStatus.rejected
     receipt.auto_processed = False
     if body.notes:

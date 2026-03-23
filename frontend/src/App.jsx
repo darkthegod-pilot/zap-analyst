@@ -1,144 +1,204 @@
 import { useState, useCallback } from 'react'
-import { Activity, Users, FileText, TrendingUp, RefreshCw, Wifi } from 'lucide-react'
+import {
+  FileText, Users, BarChart3,
+  RefreshCw, Wifi, WifiOff, AlertTriangle,
+} from 'lucide-react'
+import { Toaster } from 'react-hot-toast'
 import { usePolling } from './hooks/usePolling'
 import { api } from './api'
-import ReceiptFeed from './components/ReceiptFeed'
-import ClientList from './components/ClientList'
-import ReportChat from './components/ReportChat'
+import { presetToDates } from './components/DateFilter'
+import ReceiptFeed  from './components/ReceiptFeed'
+import ClientList   from './components/ClientList'
+import ReportChat   from './components/ReportChat'
 
 const TABS = [
-  { id: 'receipts', label: 'Comprovantes', icon: FileText },
-  { id: 'clients', label: 'Clientes', icon: Users },
-  { id: 'reports', label: 'Relatórios', icon: TrendingUp },
+  { id: 'receipts', label: 'Comprovantes', Icon: FileText  },
+  { id: 'clients',  label: 'Clientes',     Icon: Users     },
+  { id: 'reports',  label: 'Relatórios',   Icon: BarChart3 },
 ]
 
-function StatCard({ label, value, color }) {
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-      <p className="text-xs text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className={`text-3xl font-bold mt-1 ${color}`}>{value ?? '—'}</p>
-    </div>
-  )
-}
+const TODAY = presetToDates('today')
 
 export default function App() {
-  const [tab, setTab] = useState('receipts')
-  const [stats, setStats] = useState(null)
-  const [receipts, setReceipts] = useState([])
-  const [clients, setClients] = useState([])
+  const [tab,       setTab]       = useState('receipts')
+  const [stats,     setStats]     = useState(null)
   const [connected, setConnected] = useState(true)
-  const [lastUpdate, setLastUpdate] = useState(null)
+  const [spinning,  setSpinning]  = useState(false)
 
-  const refresh = useCallback(async () => {
+  // Global date filter shared across header stats
+  const [dateFilter, setDateFilter] = useState({ preset: 'today', ...TODAY })
+
+  const refreshStats = useCallback(async () => {
     try {
-      const [s, r, c] = await Promise.all([
-        api.getStats(),
-        api.getReceipts(),
-        api.getClients(),
-      ])
+      const s = await api.getStats({
+        date_from: dateFilter.date_from,
+        date_to:   dateFilter.date_to,
+      })
       setStats(s)
-      setReceipts(r)
-      setClients(c)
       setConnected(true)
-      setLastUpdate(new Date())
     } catch {
       setConnected(false)
     }
-  }, [])
+  }, [dateFilter.date_from, dateFilter.date_to])
 
-  usePolling(refresh, 5000)
+  usePolling(refreshStats, 6000)
+
+  async function handleManualRefresh() {
+    setSpinning(true)
+    await refreshStats()
+    setTimeout(() => setSpinning(false), 600)
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-950 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-white text-sm">
-            DC
+    <div className="min-h-dvh flex flex-col bg-[#0a0a0f] text-ink">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: '#1a1a26',
+            border: '1px solid #2a2a3a',
+            color: '#f0f0f8',
+            borderRadius: '0.75rem',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '0.875rem',
+          },
+          success: { iconTheme: { primary: '#00ff88', secondary: '#0a0a0f' } },
+          error:   { iconTheme: { primary: '#ff4466', secondary: '#0a0a0f' } },
+        }}
+      />
+
+      {/* ── Sticky Header ──────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-surface-border">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+
+          {/* Logo */}
+          <div className="shrink-0 w-9 h-9 rounded-xl bg-brand-dim border border-brand/30 flex items-center justify-center glow-brand">
+            <span className="text-brand font-black text-sm tracking-tight">DC</span>
           </div>
-          <div>
-            <h1 className="font-bold text-white leading-none">DarkCred</h1>
-            <p className="text-xs text-gray-500">ZAP Analyst</p>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2">
+              <h1 className="font-black text-base text-ink leading-none">DarkCred</h1>
+              <span className="text-xs text-ink-muted hidden xs:inline">ZAP Analyst</span>
+            </div>
+          </div>
+
+          {/* Connection + refresh */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg border ${
+              connected
+                ? 'bg-status-approved-bg border-status-approved-border text-status-approved'
+                : 'bg-status-rejected-bg border-status-rejected-border text-status-rejected'
+            }`}>
+              {connected
+                ? <Wifi size={12} />
+                : <WifiOff size={12} />}
+              <span className="hidden xs:inline">{connected ? 'Online' : 'Offline'}</span>
+            </div>
+            <button
+              onClick={handleManualRefresh}
+              className="btn-ghost py-1.5 px-2"
+              aria-label="Atualizar"
+            >
+              <RefreshCw size={14} className={spinning ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {lastUpdate && (
-            <p className="text-xs text-gray-600 hidden sm:block">
-              Atualizado {lastUpdate.toLocaleTimeString('pt-BR')}
-            </p>
-          )}
-          <div className={`flex items-center gap-1 text-xs ${connected ? 'text-green-400' : 'text-red-400'}`}>
-            <Wifi size={13} />
-            {connected ? 'Online' : 'Offline'}
+
+        {/* ── Stats strip ──────────────────────────────────────────── */}
+        <div className="border-t border-surface-border bg-[#0d0d14]/80">
+          <div className="max-w-3xl mx-auto px-4 py-2.5 grid grid-cols-4 gap-2">
+            {[
+              { label: 'Total',     value: stats?.total,      color: 'text-ink' },
+              { label: 'Aprovados', value: stats?.approved,   color: 'text-status-approved' },
+              { label: 'Suspeitos', value: stats?.suspicious, color: 'text-status-suspicious' },
+              { label: 'Rejeitados',value: stats?.rejected,   color: 'text-status-rejected' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="text-center">
+                <p className={`text-lg font-black tabular-nums leading-none ${color}`}>
+                  {value ?? <span className="opacity-30">—</span>}
+                </p>
+                <p className="text-2xs text-ink-muted mt-0.5 leading-none">{label}</p>
+              </div>
+            ))}
           </div>
-          <button
-            onClick={refresh}
-            className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition"
-          >
-            <RefreshCw size={14} />
-          </button>
+        </div>
+
+        {/* ── Desktop tab bar ───────────────────────────────────────── */}
+        <div className="hidden md:block border-t border-surface-border">
+          <div className="max-w-3xl mx-auto px-4 flex gap-1">
+            {TABS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
+                  tab === id
+                    ? 'border-brand text-brand'
+                    : 'border-transparent text-ink-secondary hover:text-ink'
+                }`}
+              >
+                <Icon size={15} />
+                {label}
+                {id === 'receipts' && stats?.pending > 0 && (
+                  <span className="tag bg-status-suspicious-bg text-status-suspicious border-status-suspicious-border text-2xs">
+                    {stats.pending}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* Stats */}
-      <div className="px-6 pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Total" value={stats?.total} color="text-white" />
-        <StatCard label="Aprovados" value={stats?.approved} color="text-green-400" />
-        <StatCard label="Suspeitos" value={stats?.suspicious} color="text-yellow-400" />
-        <StatCard label="Rejeitados" value={stats?.rejected} color="text-red-400" />
-      </div>
-
-      {/* Secondary stats */}
-      <div className="px-6 pt-3 grid grid-cols-2 gap-3">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-3">
-          <Activity size={16} className="text-brand-500" />
-          <div>
-            <p className="text-xs text-gray-500">Pendentes</p>
-            <p className="font-bold">{stats?.pending ?? '—'}</p>
-          </div>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-3">
-          <Users size={16} className="text-brand-500" />
-          <div>
-            <p className="text-xs text-gray-500">Clientes ativos</p>
-            <p className="font-bold">{stats?.active_clients ?? '—'} / {stats?.total_clients ?? '—'}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="px-6 pt-6 flex gap-1 border-b border-gray-800">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition ${
-              tab === id
-                ? 'text-brand-400 border-brand-500 bg-gray-900'
-                : 'text-gray-500 border-transparent hover:text-gray-300'
-            }`}
-          >
-            <Icon size={15} />
-            {label}
-            {id === 'receipts' && stats?.pending > 0 && (
-              <span className="bg-yellow-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-5 text-center">
-                {stats.pending}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <main className="flex-1 px-6 py-6 max-w-4xl w-full mx-auto">
+      {/* ── Main content ──────────────────────────────────────────── */}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-5 pb-24 md:pb-8 page-enter">
         {tab === 'receipts' && (
-          <ReceiptFeed receipts={receipts} onRefresh={refresh} />
+          <ReceiptFeed
+            globalDateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            onStatsRefresh={refreshStats}
+          />
         )}
         {tab === 'clients' && (
-          <ClientList clients={clients} onRefresh={refresh} />
+          <ClientList />
         )}
-        {tab === 'reports' && <ReportChat />}
+        {tab === 'reports' && (
+          <ReportChat />
+        )}
       </main>
+
+      {/* ── Mobile bottom nav ─────────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-xl border-t border-surface-border pb-safe">
+        <div className="flex justify-around py-1">
+          {TABS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={tab === id ? 'nav-item-active' : 'nav-item'}
+            >
+              <div className="relative">
+                <Icon size={22} />
+                {id === 'receipts' && stats?.pending > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-status-suspicious text-[#0a0a0f] rounded-full flex items-center justify-center text-2xs font-black">
+                    {stats.pending > 9 ? '9+' : stats.pending}
+                  </span>
+                )}
+              </div>
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Offline banner */}
+      {!connected && (
+        <div className="fixed top-20 inset-x-4 z-50 animate-slide-up">
+          <div className="max-w-3xl mx-auto bg-status-rejected-bg border border-status-rejected-border rounded-xl p-3 flex items-center gap-2 text-status-rejected text-sm font-medium">
+            <AlertTriangle size={16} />
+            Sem conexão com o servidor — tentando reconectar…
+          </div>
+        </div>
+      )}
     </div>
   )
 }
