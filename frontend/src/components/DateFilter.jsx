@@ -1,118 +1,95 @@
 import { useState } from 'react'
-import { Calendar, ChevronDown, X } from 'lucide-react'
+import { CalendarDays, X } from 'lucide-react'
 
 const PRESETS = [
-  { label: 'Hoje',      value: 'today' },
-  { label: 'Ontem',     value: 'yesterday' },
-  { label: '7 dias',    value: '7d' },
-  { label: '30 dias',   value: '30d' },
-  { label: 'Tudo',      value: 'all' },
-  { label: 'Período',   value: 'custom' },
+  { value: 'today',     label: 'Hoje'    },
+  { value: 'yesterday', label: 'Ontem'   },
+  { value: '7d',        label: '7 dias'  },
+  { value: '30d',       label: '30 dias' },
+  { value: 'all',       label: 'Tudo'    },
+  { value: 'custom',    label: 'Período' },
 ]
 
-function toISODate(d) {
-  return d.toISOString().slice(0, 10)
-}
+function toISO(d) { return d.toISOString().slice(0, 10) }
 
 export function presetToDates(preset) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = toISODate(today)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const ts = toISO(today)
 
-  switch (preset) {
-    case 'today':
-      return { date_from: todayStr, date_to: todayStr }
-    case 'yesterday': {
-      const y = new Date(today); y.setDate(y.getDate() - 1)
-      const ys = toISODate(y)
-      return { date_from: ys, date_to: ys }
-    }
-    case '7d': {
-      const d = new Date(today); d.setDate(d.getDate() - 6)
-      return { date_from: toISODate(d), date_to: todayStr }
-    }
-    case '30d': {
-      const d = new Date(today); d.setDate(d.getDate() - 29)
-      return { date_from: toISODate(d), date_to: todayStr }
-    }
-    case 'all':
-      return { date_from: null, date_to: null }
-    default:
-      return null
+  if (preset === 'today')     return { date_from: ts,   date_to: ts   }
+  if (preset === 'yesterday') {
+    const y = new Date(today); y.setDate(y.getDate() - 1)
+    const ys = toISO(y)
+    return { date_from: ys, date_to: ys }
   }
+  if (preset === '7d') {
+    const d = new Date(today); d.setDate(d.getDate() - 6)
+    return { date_from: toISO(d), date_to: ts }
+  }
+  if (preset === '30d') {
+    const d = new Date(today); d.setDate(d.getDate() - 29)
+    return { date_from: toISO(d), date_to: ts }
+  }
+  if (preset === 'all') return { date_from: null, date_to: null }
+  return null
 }
 
 export default function DateFilter({ value = 'today', customFrom, customTo, onChange }) {
   const [showCustom, setShowCustom] = useState(value === 'custom')
-  const [localFrom, setLocalFrom] = useState(customFrom || '')
-  const [localTo, setLocalTo]     = useState(customTo   || '')
+  const [from, setFrom] = useState(customFrom || '')
+  const [to,   setTo]   = useState(customTo   || '')
 
-  function handlePreset(preset) {
-    if (preset === 'custom') {
-      setShowCustom(true)
-      return
-    }
+  function selectPreset(preset) {
+    if (preset === 'custom') { setShowCustom(true); return }
     setShowCustom(false)
     onChange({ preset, ...presetToDates(preset) })
   }
 
-  function handleCustomApply() {
-    if (!localFrom || !localTo) return
-    onChange({ preset: 'custom', date_from: localFrom, date_to: localTo })
+  function applyCustom() {
+    if (!from || !to) return
+    onChange({ preset: 'custom', date_from: from, date_to: to })
   }
 
-  function handleClearCustom() {
-    setShowCustom(false)
-    setLocalFrom('')
-    setLocalTo('')
+  function clear() {
+    setShowCustom(false); setFrom(''); setTo('')
     onChange({ preset: 'today', ...presetToDates('today') })
   }
 
   return (
     <div className="space-y-2">
-      {/* Preset chips */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <Calendar size={13} className="text-ink-muted shrink-0" />
-        {PRESETS.map((p) => (
+      {/* Chips */}
+      <div
+        className="flex gap-1.5 overflow-x-auto pb-0.5"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {PRESETS.map(p => (
           <button
             key={p.value}
-            onClick={() => handlePreset(p.value)}
+            onClick={() => selectPreset(p.value)}
             className={
-              (value === p.value || (p.value === 'custom' && showCustom))
+              (p.value === value || (p.value === 'custom' && showCustom))
                 ? 'chip-active'
                 : 'chip-default'
             }
           >
-            {p.value === 'custom' && <ChevronDown size={11} />}
+            {p.value === 'today' && <CalendarDays size={10} />}
             {p.label}
           </button>
         ))}
       </div>
 
-      {/* Custom range picker */}
+      {/* Custom range inputs */}
       {showCustom && (
-        <div className="flex items-center gap-2 animate-fade-in flex-wrap">
-          <input
-            type="date"
-            value={localFrom}
-            onChange={(e) => setLocalFrom(e.target.value)}
-            className="input w-auto text-xs py-1.5 px-2"
-          />
-          <span className="text-ink-muted text-xs">até</span>
-          <input
-            type="date"
-            value={localTo}
-            onChange={(e) => setLocalTo(e.target.value)}
-            className="input w-auto text-xs py-1.5 px-2"
-          />
-          <button
-            onClick={handleCustomApply}
-            disabled={!localFrom || !localTo}
-            className="btn-brand text-xs py-1.5 px-3"
-          >
+        <div className="flex items-center gap-2 flex-wrap animate-slide-down">
+          <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+            className="input py-1.5 text-[12px] w-auto" />
+          <span className="text-ink3 text-[11px]">→</span>
+          <input type="date" value={to} onChange={e => setTo(e.target.value)}
+            className="input py-1.5 text-[12px] w-auto" />
+          <button onClick={applyCustom} disabled={!from || !to} className="btn-sm btn-primary">
             Aplicar
           </button>
-          <button onClick={handleClearCustom} className="btn-ghost text-xs py-1.5 px-2">
+          <button onClick={clear} className="btn-ghost">
             <X size={12} />
           </button>
         </div>

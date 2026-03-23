@@ -1,23 +1,33 @@
+function SkeletonBlock({ w, h, rounded }) {
+  return (
+    <div
+      className="skeleton"
+      style={{ width: w, height: h, borderRadius: rounded ?? 6 }}
+    />
+  )
+}
+
 export function SkeletonCard() {
   return (
-    <div className="card p-4 space-y-3 animate-pulse">
-      <div className="flex items-center gap-3">
-        <div className="w-14 h-14 rounded-xl bg-surface-raised" />
-        <div className="flex-1 space-y-2">
-          <div className="h-3 bg-surface-raised rounded w-1/3" />
-          <div className="h-4 bg-surface-raised rounded w-1/2" />
-          <div className="h-3 bg-surface-raised rounded w-1/4" />
-        </div>
-        <div className="w-20 space-y-2">
-          <div className="h-3 bg-surface-raised rounded" />
-          <div className="h-2 bg-surface-raised rounded" />
-        </div>
+    <div
+      className="rounded-[10px] p-3 flex items-center gap-3"
+      style={{
+        background: '#0D1525',
+        boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+      }}
+    >
+      <SkeletonBlock w={52} h={52} rounded={7} />
+      <div className="flex-1 space-y-2">
+        <SkeletonBlock w="45%" h={12} />
+        <SkeletonBlock w="30%" h={14} />
+        <SkeletonBlock w="55%" h={10} />
       </div>
+      <SkeletonBlock w={44} h={44} rounded={22} />
     </div>
   )
 }
 
-export function SkeletonList({ count = 5 }) {
+export function SkeletonList({ count = 4 }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: count }).map((_, i) => (

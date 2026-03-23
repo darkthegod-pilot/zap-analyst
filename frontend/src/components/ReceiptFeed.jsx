@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { FileX } from 'lucide-react'
+import { FileStack } from 'lucide-react'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
 import { presetToDates } from './DateFilter'
@@ -9,100 +9,84 @@ import ReceiptCard       from './ReceiptCard'
 import EmptyState        from './EmptyState'
 import { SkeletonList }  from './Skeleton'
 
-const STATUS_FILTERS = [
-  { value: '',           label: 'Todos'     },
-  { value: 'pending',    label: 'Pendentes' },
-  { value: 'suspicious', label: 'Suspeitos' },
-  { value: 'approved',   label: 'Aprovados' },
-  { value: 'rejected',   label: 'Rejeitados'},
+const STATUS = [
+  { v: '',            l: 'Todos'     },
+  { v: 'pending',     l: 'Pendentes' },
+  { v: 'suspicious',  l: 'Suspeitos' },
+  { v: 'approved',    l: 'Aprovados' },
+  { v: 'rejected',    l: 'Rejeitados'},
 ]
 
+const PAGE = 20
 const TODAY = presetToDates('today')
-const PAGE  = 20
 
-export default function ReceiptFeed({ onStatsRefresh }) {
-  const [dateFilter,  setDateFilter]  = useState({ preset: 'today', ...TODAY })
-  const [statusFilter,setStatusFilter]= useState('')
-  const [offset,      setOffset]      = useState(0)
-  const [data,        setData]        = useState({ items: [], total: 0 })
-  const [loading,     setLoading]     = useState(true)
+export default function ReceiptFeed({ onRefreshStats }) {
+  const [date,    setDate]    = useState({ preset: 'today', ...TODAY })
+  const [status,  setStatus]  = useState('')
+  const [offset,  setOffset]  = useState(0)
+  const [data,    setData]    = useState({ items: [], total: 0 })
+  const [loading, setLoading] = useState(true)
 
-  const fetchReceipts = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
-      const result = await api.getReceipts({
-        status:    statusFilter || undefined,
-        date_from: dateFilter.date_from,
-        date_to:   dateFilter.date_to,
-        limit:     PAGE,
-        offset,
+      const r = await api.getReceipts({
+        status:    status || undefined,
+        date_from: date.date_from,
+        date_to:   date.date_to,
+        limit: PAGE, offset,
       })
-      setData(result)
-    } catch {
-      // keep previous data on error
+      setData(r)
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, dateFilter.date_from, dateFilter.date_to, offset])
+  }, [status, date.date_from, date.date_to, offset])
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setOffset(0) }, [statusFilter, dateFilter.date_from, dateFilter.date_to])
+  useEffect(() => { setOffset(0) }, [status, date.date_from, date.date_to])
+  usePolling(load, 6000)
 
-  usePolling(fetchReceipts, 6000)
-
-  function handleRefresh() {
-    fetchReceipts()
-    onStatsRefresh?.()
-  }
-
-  function handleDateChange(df) {
-    setDateFilter(df)
-    setOffset(0)
-  }
+  function refresh() { load(); onRefreshStats?.() }
 
   return (
     <div className="space-y-4">
-      {/* ── Date filter ─────────────────────────────── */}
+      {/* Date filter */}
       <DateFilter
-        value={dateFilter.preset}
-        customFrom={dateFilter.date_from}
-        customTo={dateFilter.date_to}
-        onChange={handleDateChange}
+        value={date.preset}
+        customFrom={date.date_from}
+        customTo={date.date_to}
+        onChange={d => { setDate(d); setOffset(0) }}
       />
 
-      {/* ── Status chips ────────────────────────────── */}
-      <div className="flex gap-1.5 flex-wrap">
-        {STATUS_FILTERS.map(f => (
+      {/* Status filter */}
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+        {STATUS.map(f => (
           <button
-            key={f.value}
-            onClick={() => { setStatusFilter(f.value); setOffset(0) }}
-            className={statusFilter === f.value ? 'chip-active' : 'chip-default'}
+            key={f.v}
+            onClick={() => { setStatus(f.v); setOffset(0) }}
+            className={status === f.v ? 'chip-active' : 'chip-default'}
           >
-            {f.label}
-            {f.value === '' && data.total > 0 && (
-              <span className="text-2xs opacity-70">({data.total})</span>
+            {f.l}
+            {f.v === '' && data.total > 0 && (
+              <span className="font-mono text-[10px] opacity-50">({data.total})</span>
             )}
           </button>
         ))}
       </div>
 
-      {/* ── List ────────────────────────────────────── */}
+      {/* Content */}
       {loading ? (
         <SkeletonList count={4} />
       ) : data.items.length === 0 ? (
         <EmptyState
-          icon={FileX}
-          title="Nenhum comprovante encontrado"
+          icon={FileStack}
+          title="Nenhum comprovante"
           subtitle={
-            dateFilter.preset === 'today'
-              ? 'Nenhum comprovante recebido hoje. Tente selecionar outro período.'
-              : 'Nenhum comprovante encontrado para os filtros selecionados.'
+            date.preset === 'today'
+              ? 'Nenhum comprovante recebido hoje. Tente outro período.'
+              : 'Sem resultados para os filtros selecionados.'
           }
           action={
-            <button
-              onClick={() => handleDateChange({ preset: 'all', date_from: null, date_to: null })}
-              className="btn-ghost text-xs"
-            >
-              Ver todos os períodos
+            <button className="btn-ghost btn-sm" onClick={() => setDate({ preset: 'all', date_from: null, date_to: null })}>
+              Ver todos
             </button>
           }
         />
@@ -110,15 +94,10 @@ export default function ReceiptFeed({ onStatsRefresh }) {
         <>
           <div className="space-y-3">
             {data.items.map(r => (
-              <ReceiptCard key={r.id} receipt={r} onRefresh={handleRefresh} />
+              <ReceiptCard key={r.id} receipt={r} onRefresh={refresh} />
             ))}
           </div>
-          <Pagination
-            total={data.total}
-            limit={PAGE}
-            offset={offset}
-            onChange={setOffset}
-          />
+          <Pagination total={data.total} limit={PAGE} offset={offset} onChange={setOffset} />
         </>
       )}
     </div>

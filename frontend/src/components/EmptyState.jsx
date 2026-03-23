@@ -1,14 +1,20 @@
 export default function EmptyState({ icon: Icon, title, subtitle, action }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center animate-fade-in">
+    <div className="flex flex-col items-center justify-center py-16 gap-4 text-center animate-fade-in">
       {Icon && (
-        <div className="w-16 h-16 rounded-2xl bg-surface-raised border border-surface-border flex items-center justify-center">
-          <Icon size={28} className="text-ink-muted" />
+        <div
+          className="w-14 h-14 rounded-[12px] flex items-center justify-center"
+          style={{
+            background: 'rgba(100,150,255,0.05)',
+            boxShadow: '0 0 0 0.5px rgba(100,150,255,0.09)',
+          }}
+        >
+          <Icon size={24} className="text-ink3" />
         </div>
       )}
-      <div>
-        <p className="font-semibold text-ink">{title}</p>
-        {subtitle && <p className="text-sm text-ink-secondary mt-1 max-w-xs">{subtitle}</p>}
+      <div className="space-y-1">
+        <p className="text-[14px] font-semibold text-ink2">{title}</p>
+        {subtitle && <p className="text-[12px] text-ink3 max-w-[240px] leading-relaxed">{subtitle}</p>}
       </div>
       {action}
     </div>

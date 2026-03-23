@@ -1,40 +1,43 @@
 import { useState } from 'react'
-import {
-  Send, MessageSquare, Loader2, Smartphone,
-  CheckCircle2, Copy, BarChart3,
-} from 'lucide-react'
+import { Send, Smartphone, Loader2, Check, Copy, BarChart3, MessageSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api }           from '../api'
 import DateFilter, { presetToDates } from './DateFilter'
 
-const QUICK = [
-  { label: '📊 Relatório de hoje',         msg: 'relatório de hoje'                },
-  { label: '📅 Relatório de ontem',        msg: 'relatório de ontem'               },
-  { label: '📱 Enviar no WhatsApp',        msg: 'manda o relatório de hoje no zap' },
-  { label: '📆 Relatório semanal',         msg: 'relatório dos últimos 7 dias'     },
-]
-
 const TODAY = presetToDates('today')
 
-export default function ReportChat() {
-  const [message,      setMessage]      = useState('')
-  const [loading,      setLoading]      = useState(false)
-  const [sendingNow,   setSendingNow]   = useState(false)
-  const [result,       setResult]       = useState(null)
-  const [dateFilter,   setDateFilter]   = useState({ preset: 'today', ...TODAY })
-  const [copied,       setCopied]       = useState(false)
+const QUICK = [
+  { emoji: '📊', label: 'Hoje',            msg: 'relatório de hoje'                },
+  { emoji: '📅', label: 'Ontem',           msg: 'relatório de ontem'               },
+  { emoji: '📱', label: 'Enviar no zap',   msg: 'manda o relatório de hoje no zap' },
+  { emoji: '📆', label: 'Última semana',   msg: 'relatório dos últimos 7 dias'     },
+]
 
-  async function handleSend(overrideMsg) {
-    const text = overrideMsg ?? message
-    if (!text.trim()) return
-    setLoading(true)
-    setResult(null)
+export default function ReportChat() {
+  const [msg,        setMsg]        = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [sending,    setSending]    = useState(false)
+  const [result,     setResult]     = useState(null)
+  const [copied,     setCopied]     = useState(false)
+  const [date,       setDate]       = useState({ preset: 'today', ...TODAY })
+
+  function buildMsg(base) {
+    if (date.preset === 'yesterday') return base.replace('hoje', 'ontem')
+    if (date.preset === '7d')        return 'relatório dos últimos 7 dias'
+    if (date.preset === '30d')       return 'relatório do último mês'
+    if (date.preset === 'custom' && date.date_from)
+      return `relatório do período ${date.date_from} até ${date.date_to}`
+    return base
+  }
+
+  async function send(text) {
+    const t = text ?? msg
+    if (!t.trim()) return
+    setLoading(true); setResult(null)
     try {
-      const data = await api.requestReport(text)
-      setResult(data)
-      if (data.sent_whatsapp) {
-        toast.success('Relatório enviado no WhatsApp!', { duration: 4000 })
-      }
+      const r = await api.requestReport(t)
+      setResult(r)
+      if (r.sent_whatsapp) toast.success('Relatório enviado no WhatsApp!', { duration: 4000 })
     } catch (e) {
       toast.error(e.message)
     } finally {
@@ -42,95 +45,95 @@ export default function ReportChat() {
     }
   }
 
-  async function handleSendNow() {
-    setSendingNow(true)
+  async function sendNow() {
+    setSending(true)
     try {
       await api.sendNow()
       toast.success('Relatório enviado para +55 11 99655-4604!', { duration: 5000 })
     } catch (e) {
       toast.error(e.message)
     } finally {
-      setSendingNow(false)
+      setSending(false)
     }
   }
 
-  async function handleCopy() {
+  async function copy() {
     if (!result?.report) return
-    try {
-      await navigator.clipboard.writeText(result.report)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error('Não foi possível copiar')
-    }
-  }
-
-  /* Build context-aware quick message using date filter */
-  function buildMessage(base) {
-    if (dateFilter.preset === 'today')     return base
-    if (dateFilter.preset === 'yesterday') return base.replace('hoje', 'ontem')
-    if (dateFilter.preset === '7d')        return 'relatório dos últimos 7 dias'
-    if (dateFilter.preset === '30d')       return 'relatório do último mês'
-    if (dateFilter.preset === 'custom')
-      return `relatório do período ${dateFilter.date_from} até ${dateFilter.date_to}`
-    return base
+    await navigator.clipboard.writeText(result.report).catch(() => {})
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className="space-y-5">
-      {/* ── Daily auto-send banner ─────────────────── */}
-      <div className="card p-4 flex flex-col xs:flex-row items-start xs:items-center gap-4">
-        <div className="flex-1 min-w-0">
+    <div className="space-y-4">
+
+      {/* Auto-send banner */}
+      <div
+        className="rounded-[10px] p-4 flex items-center justify-between gap-4"
+        style={{
+          background: '#0D1525',
+          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+        }}
+      >
+        <div>
           <div className="flex items-center gap-2 mb-1">
-            <Smartphone size={15} className="text-brand shrink-0" />
-            <p className="font-bold text-sm text-ink">Envio automático diário</p>
+            <Smartphone size={13} className="text-brand" />
+            <p className="text-[13px] font-bold text-ink">Envio automático</p>
           </div>
-          <p className="text-xs text-ink-secondary">
-            Todo dia às <span className="text-brand font-mono font-bold">00:00</span> BRT para{' '}
-            <span className="font-mono text-ink">+55 11 99655-4604</span>
+          <p className="text-[12px] text-ink2">
+            Diariamente às{' '}
+            <span className="font-mono font-bold text-brand">00:00</span> BRT
+            {' '}→{' '}
+            <span className="font-mono text-ink3">+55 11 99655-4604</span>
           </p>
         </div>
-        <button
-          onClick={handleSendNow}
-          disabled={sendingNow}
-          className="btn-brand shrink-0 w-full xs:w-auto"
-        >
-          {sendingNow
-            ? <Loader2 size={15} className="animate-spin" />
-            : <Smartphone size={15} />}
-          Enviar agora
+        <button onClick={sendNow} disabled={sending} className="btn-primary shrink-0">
+          {sending ? <Loader2 size={14} className="animate-spin" /> : <Smartphone size={14} />}
+          Enviar
         </button>
       </div>
 
-      {/* ── Period filter ─────────────────────────── */}
-      <div className="card p-4 space-y-3">
+      {/* Period selector */}
+      <div
+        className="rounded-[10px] p-4 space-y-3"
+        style={{
+          background: '#0D1525',
+          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+        }}
+      >
         <p className="section-title flex items-center gap-1.5">
-          <BarChart3 size={13} /> Período do relatório
+          <BarChart3 size={11} /> Período do relatório
         </p>
         <DateFilter
-          value={dateFilter.preset}
-          customFrom={dateFilter.date_from}
-          customTo={dateFilter.date_to}
-          onChange={setDateFilter}
+          value={date.preset}
+          customFrom={date.date_from}
+          customTo={date.date_to}
+          onChange={setDate}
         />
       </div>
 
-      {/* ── Natural language input ─────────────────── */}
-      <div className="card p-4 space-y-4">
+      {/* Request */}
+      <div
+        className="rounded-[10px] p-4 space-y-4"
+        style={{
+          background: '#0D1525',
+          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+        }}
+      >
         <p className="section-title flex items-center gap-1.5">
-          <MessageSquare size={13} /> Pedir por texto
+          <MessageSquare size={11} /> Pedir por texto
         </p>
 
-        {/* Quick suggestions */}
+        {/* Quick buttons */}
         <div className="grid grid-cols-2 gap-2">
           {QUICK.map(q => (
             <button
               key={q.msg}
-              onClick={() => handleSend(buildMessage(q.msg))}
+              onClick={() => send(buildMsg(q.msg))}
               disabled={loading}
-              className="btn-ghost text-xs py-2.5 text-left justify-start"
+              className="btn-ghost btn-sm justify-start text-[12px] py-3"
             >
-              {q.label}
+              <span>{q.emoji}</span>
+              <span>{q.label}</span>
             </button>
           ))}
         </div>
@@ -139,50 +142,60 @@ export default function ReportChat() {
         <div className="flex gap-2">
           <input
             className="input"
-            placeholder="Ex: me manda o relatório do mês no WhatsApp…"
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            placeholder="Ex: manda o relatório semanal no WhatsApp…"
+            value={msg}
+            onChange={e => setMsg(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
           />
           <button
-            onClick={() => handleSend()}
-            disabled={loading || !message.trim()}
-            className="btn-brand px-3 shrink-0"
-            aria-label="Enviar"
+            onClick={() => send()}
+            disabled={loading || !msg.trim()}
+            className="btn-primary shrink-0 px-3"
           >
-            {loading
-              ? <Loader2 size={16} className="animate-spin" />
-              : <Send size={16} />}
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </div>
       </div>
 
-      {/* ── Result ────────────────────────────────── */}
+      {/* Result */}
       {result && (
-        <div className="card p-4 space-y-3 animate-slide-up border-brand/20">
+        <div
+          className="rounded-[10px] p-4 space-y-3 animate-slide-up"
+          style={{
+            background: '#0D1525',
+            boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(16,185,129,0.06)',
+          }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="section-title">Relatório gerado</p>
-              <span className="text-xs text-ink-secondary">{result.date}</span>
+              <span className="font-mono text-[11px] text-ink3">{result.date}</span>
               {result.sent_whatsapp && (
-                <span className="tag bg-status-approved-bg text-status-approved border-status-approved-border">
-                  <CheckCircle2 size={11} /> Enviado no WhatsApp
+                <span
+                  className="badge"
+                  style={{
+                    background: 'rgba(16,185,129,0.10)',
+                    color: '#34D399',
+                    boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)',
+                  }}
+                >
+                  <Check size={9} /> Enviado no WhatsApp
                 </span>
               )}
             </div>
-            <button
-              onClick={handleCopy}
-              className="btn-ghost text-xs py-1.5 px-3 shrink-0"
-            >
-              {copied ? <CheckCircle2 size={13} className="text-status-approved" /> : <Copy size={13} />}
-              {copied ? 'Copiado!' : 'Copiar'}
+            <button onClick={copy} className="btn-ghost btn-sm">
+              {copied ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
+              {copied ? 'Copiado' : 'Copiar'}
             </button>
           </div>
 
-          {/* Report body */}
-          <div className="bg-surface-raised rounded-xl p-4 border border-surface-border">
-            <pre className="text-sm text-ink whitespace-pre-wrap font-sans leading-relaxed">
+          {/* Body */}
+          <div
+            className="rounded-[8px] p-3"
+            style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+          >
+            <pre className="text-[12px] text-ink2 whitespace-pre-wrap font-sans leading-relaxed">
               {result.report}
             </pre>
           </div>

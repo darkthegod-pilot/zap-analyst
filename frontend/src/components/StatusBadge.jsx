@@ -1,17 +1,22 @@
-const STATUS = {
-  approved:  { label: 'Aprovado',  bg: 'bg-status-approved-bg',   text: 'text-status-approved',   border: 'border-status-approved-border',   dot: 'bg-status-approved'  },
-  rejected:  { label: 'Rejeitado', bg: 'bg-status-rejected-bg',   text: 'text-status-rejected',   border: 'border-status-rejected-border',   dot: 'bg-status-rejected'  },
-  suspicious:{ label: 'Suspeito',  bg: 'bg-status-suspicious-bg', text: 'text-status-suspicious', border: 'border-status-suspicious-border', dot: 'bg-status-suspicious'},
-  pending:   { label: 'Pendente',  bg: 'bg-status-pending-bg',    text: 'text-status-pending',    border: 'border-status-pending-border',    dot: 'bg-status-pending'   },
+const CONFIG = {
+  approved:  { label: 'Aprovado',  color: '#34D399', bg: 'rgba(16,185,129,0.10)',  shadow: '0 0 0 0.5px rgba(16,185,129,0.22)'  },
+  rejected:  { label: 'Rejeitado', color: '#F87171', bg: 'rgba(239,68,68,0.10)',   shadow: '0 0 0 0.5px rgba(239,68,68,0.22)'   },
+  suspicious:{ label: 'Suspeito',  color: '#FCD34D', bg: 'rgba(245,158,11,0.10)',  shadow: '0 0 0 0.5px rgba(245,158,11,0.22)'  },
+  pending:   { label: 'Pendente',  color: '#7A8DB5', bg: 'rgba(75,94,138,0.10)',   shadow: '0 0 0 0.5px rgba(75,94,138,0.22)'   },
 }
 
-export default function StatusBadge({ status, size = 'sm' }) {
-  const cfg = STATUS[status] ?? STATUS.pending
-  const textSize = size === 'xs' ? 'text-2xs' : 'text-xs'
+export default function StatusBadge({ status }) {
+  const c = CONFIG[status] ?? CONFIG.pending
   return (
-    <span className={`tag ${cfg.bg} ${cfg.text} border ${cfg.border} ${textSize}`}>
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
+    <span
+      className="badge"
+      style={{ background: c.bg, color: c.color, boxShadow: c.shadow }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: c.color, boxShadow: `0 0 4px ${c.color}80` }}
+      />
+      {c.label}
     </span>
   )
 }

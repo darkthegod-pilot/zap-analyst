@@ -1,174 +1,251 @@
 import { useState, useCallback } from 'react'
 import {
-  FileText, Users, BarChart3,
-  RefreshCw, Wifi, WifiOff, AlertTriangle,
+  FileStack, Users, BarChart3,
+  RefreshCw, CheckCircle, AlertTriangle, Clock, XCircle,
 } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
-import { usePolling } from './hooks/usePolling'
-import { api } from './api'
+import { usePolling }    from './hooks/usePolling'
+import { api }           from './api'
 import { presetToDates } from './components/DateFilter'
-import ReceiptFeed  from './components/ReceiptFeed'
-import ClientList   from './components/ClientList'
-import ReportChat   from './components/ReportChat'
+import ReceiptFeed from './components/ReceiptFeed'
+import ClientList  from './components/ClientList'
+import ReportChat  from './components/ReportChat'
 
 const TABS = [
-  { id: 'receipts', label: 'Comprovantes', Icon: FileText  },
-  { id: 'clients',  label: 'Clientes',     Icon: Users     },
-  { id: 'reports',  label: 'Relatórios',   Icon: BarChart3 },
+  { id: 'receipts', label: 'Comprovantes', Icon: FileStack  },
+  { id: 'clients',  label: 'Clientes',     Icon: Users      },
+  { id: 'reports',  label: 'Relatórios',   Icon: BarChart3  },
 ]
 
 const TODAY = presetToDates('today')
 
+/* ── Stat pill ───────────────────────────────────── */
+function StatPill({ Icon, value, label, color, bg, shadow }) {
+  return (
+    <div
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full shrink-0"
+      style={{ background: bg, boxShadow: shadow }}
+    >
+      <Icon size={12} style={{ color }} />
+      <span className="font-mono text-[13px] font-bold tabular lining" style={{ color }}>
+        {value ?? <span style={{ opacity: 0.4 }}>—</span>}
+      </span>
+      <span className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">{label}</span>
+    </div>
+  )
+}
+
 export default function App() {
-  const [tab,       setTab]       = useState('receipts')
-  const [stats,     setStats]     = useState(null)
-  const [connected, setConnected] = useState(true)
-  const [spinning,  setSpinning]  = useState(false)
+  const [tab,      setTab]      = useState('receipts')
+  const [stats,    setStats]    = useState(null)
+  const [online,   setOnline]   = useState(true)
+  const [spin,     setSpin]     = useState(false)
+  const [dateCtx,  setDateCtx]  = useState({ preset: 'today', ...TODAY })
 
-  // Global date filter shared across header stats
-  const [dateFilter, setDateFilter] = useState({ preset: 'today', ...TODAY })
-
-  const refreshStats = useCallback(async () => {
+  const refresh = useCallback(async () => {
     try {
       const s = await api.getStats({
-        date_from: dateFilter.date_from,
-        date_to:   dateFilter.date_to,
+        date_from: dateCtx.date_from,
+        date_to:   dateCtx.date_to,
       })
       setStats(s)
-      setConnected(true)
+      setOnline(true)
     } catch {
-      setConnected(false)
+      setOnline(false)
     }
-  }, [dateFilter.date_from, dateFilter.date_to])
+  }, [dateCtx.date_from, dateCtx.date_to])
 
-  usePolling(refreshStats, 6000)
+  usePolling(refresh, 6000)
 
-  async function handleManualRefresh() {
-    setSpinning(true)
-    await refreshStats()
-    setTimeout(() => setSpinning(false), 600)
+  async function manualRefresh() {
+    setSpin(true)
+    await refresh()
+    setTimeout(() => setSpin(false), 500)
   }
 
   return (
-    <div className="min-h-dvh flex flex-col bg-[#0a0a0f] text-ink">
+    <div className="min-h-dvh flex flex-col" style={{ background: '#080D18', color: '#E8EEF8' }}>
+
+      {/* ── Toast ─────────────────────────────────────── */}
       <Toaster
         position="top-center"
         toastOptions={{
+          duration: 3000,
           style: {
-            background: '#1a1a26',
-            border: '1px solid #2a2a3a',
-            color: '#f0f0f8',
-            borderRadius: '0.75rem',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '0.875rem',
+            background: '#0D1525',
+            border: '0.5px solid rgba(100,150,255,0.12)',
+            color: '#E8EEF8',
+            borderRadius: '8px',
+            fontFamily: 'Inter,sans-serif',
+            fontSize: '13px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
           },
-          success: { iconTheme: { primary: '#00ff88', secondary: '#0a0a0f' } },
-          error:   { iconTheme: { primary: '#ff4466', secondary: '#0a0a0f' } },
+          success: { iconTheme: { primary: '#10B981', secondary: '#080D18' } },
+          error:   { iconTheme: { primary: '#EF4444', secondary: '#080D18' } },
         }}
       />
 
-      {/* ── Sticky Header ──────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-surface-border">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+      {/* ── Header ─────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-40"
+        style={{
+          background: 'rgba(8,13,24,0.92)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '0.5px solid rgba(100,150,255,0.09)',
+        }}
+      >
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-4 py-3">
 
           {/* Logo */}
-          <div className="shrink-0 w-9 h-9 rounded-xl bg-brand-dim border border-brand/30 flex items-center justify-center glow-brand">
-            <span className="text-brand font-black text-sm tracking-tight">DC</span>
+          <div
+            className="w-9 h-9 rounded-[9px] flex items-center justify-center shrink-0"
+            style={{
+              background: 'rgba(16,185,129,0.10)',
+              boxShadow: '0 0 0 1px rgba(16,185,129,0.25), 0 0 16px rgba(16,185,129,0.08)',
+            }}
+          >
+            <span
+              className="font-mono font-black text-[11px] tracking-tight"
+              style={{ color: '#10B981' }}
+            >DC</span>
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2">
-              <h1 className="font-black text-base text-ink leading-none">DarkCred</h1>
-              <span className="text-xs text-ink-muted hidden xs:inline">ZAP Analyst</span>
+              <h1 className="font-black text-[15px] text-ink leading-none">DarkCred</h1>
+              <span className="text-[11px] text-ink3 hidden xs:inline font-medium">
+                ZAP Analyst
+              </span>
             </div>
           </div>
 
-          {/* Connection + refresh */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg border ${
-              connected
-                ? 'bg-status-approved-bg border-status-approved-border text-status-approved'
-                : 'bg-status-rejected-bg border-status-rejected-border text-status-rejected'
-            }`}>
-              {connected
-                ? <Wifi size={12} />
-                : <WifiOff size={12} />}
-              <span className="hidden xs:inline">{connected ? 'Online' : 'Offline'}</span>
-            </div>
+          {/* Connection status */}
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+            style={{
+              background: online ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+              boxShadow:  online ? '0 0 0 0.5px rgba(16,185,129,0.22)' : '0 0 0 0.5px rgba(239,68,68,0.22)',
+              color:      online ? '#34D399' : '#F87171',
+            }}
+          >
+            {online ? <span className="dot-live" /> : <span className="w-1.5 h-1.5 rounded-full bg-danger" />}
+            <span className="hidden xs:inline">{online ? 'Online' : 'Offline'}</span>
+          </div>
+
+          <button
+            onClick={manualRefresh}
+            className="btn-ghost"
+            aria-label="Atualizar"
+          >
+            <RefreshCw size={13} className={spin ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        {/* Stats strip */}
+        <div
+          className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          <StatPill
+            Icon={FileStack}
+            value={stats?.total}
+            label="total"
+            color="#7A8DB5"
+            bg="rgba(100,150,255,0.05)"
+            shadow="0 0 0 0.5px rgba(100,150,255,0.09)"
+          />
+          <StatPill
+            Icon={CheckCircle}
+            value={stats?.approved}
+            label="aprov."
+            color="#34D399"
+            bg="rgba(16,185,129,0.08)"
+            shadow="0 0 0 0.5px rgba(16,185,129,0.20)"
+          />
+          <StatPill
+            Icon={AlertTriangle}
+            value={stats?.suspicious}
+            label="susp."
+            color="#FCD34D"
+            bg="rgba(245,158,11,0.08)"
+            shadow="0 0 0 0.5px rgba(245,158,11,0.20)"
+          />
+          <StatPill
+            Icon={Clock}
+            value={stats?.pending}
+            label="pend."
+            color="#7A8DB5"
+            bg="rgba(75,94,138,0.08)"
+            shadow="0 0 0 0.5px rgba(75,94,138,0.20)"
+          />
+          <StatPill
+            Icon={XCircle}
+            value={stats?.rejected}
+            label="rejeit."
+            color="#F87171"
+            bg="rgba(239,68,68,0.08)"
+            shadow="0 0 0 0.5px rgba(239,68,68,0.20)"
+          />
+        </div>
+
+        {/* Desktop tab bar */}
+        <div
+          className="hidden md:flex px-4 gap-1"
+          style={{ borderTop: '0.5px solid rgba(100,150,255,0.07)' }}
+        >
+          {TABS.map(({ id, label, Icon }) => (
             <button
-              onClick={handleManualRefresh}
-              className="btn-ghost py-1.5 px-2"
-              aria-label="Atualizar"
+              key={id}
+              onClick={() => setTab(id)}
+              className="flex items-center gap-2 px-4 py-3 text-[13px] font-semibold
+                         border-b-2 transition-all duration-150"
+              style={{
+                borderColor: tab === id ? '#10B981' : 'transparent',
+                color:        tab === id ? '#10B981' : '#3D4E72',
+              }}
             >
-              <RefreshCw size={14} className={spinning ? 'animate-spin' : ''} />
+              <Icon size={14} />
+              {label}
+              {id === 'receipts' && (stats?.pending ?? 0) > 0 && (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: 'rgba(245,158,11,0.15)',
+                    color: '#FCD34D',
+                    boxShadow: '0 0 0 0.5px rgba(245,158,11,0.25)',
+                  }}
+                >
+                  {stats.pending}
+                </span>
+              )}
             </button>
-          </div>
-        </div>
-
-        {/* ── Stats strip ──────────────────────────────────────────── */}
-        <div className="border-t border-surface-border bg-[#0d0d14]/80">
-          <div className="max-w-3xl mx-auto px-4 py-2.5 grid grid-cols-4 gap-2">
-            {[
-              { label: 'Total',     value: stats?.total,      color: 'text-ink' },
-              { label: 'Aprovados', value: stats?.approved,   color: 'text-status-approved' },
-              { label: 'Suspeitos', value: stats?.suspicious, color: 'text-status-suspicious' },
-              { label: 'Rejeitados',value: stats?.rejected,   color: 'text-status-rejected' },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="text-center">
-                <p className={`text-lg font-black tabular-nums leading-none ${color}`}>
-                  {value ?? <span className="opacity-30">—</span>}
-                </p>
-                <p className="text-2xs text-ink-muted mt-0.5 leading-none">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Desktop tab bar ───────────────────────────────────────── */}
-        <div className="hidden md:block border-t border-surface-border">
-          <div className="max-w-3xl mx-auto px-4 flex gap-1">
-            {TABS.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
-                  tab === id
-                    ? 'border-brand text-brand'
-                    : 'border-transparent text-ink-secondary hover:text-ink'
-                }`}
-              >
-                <Icon size={15} />
-                {label}
-                {id === 'receipts' && stats?.pending > 0 && (
-                  <span className="tag bg-status-suspicious-bg text-status-suspicious border-status-suspicious-border text-2xs">
-                    {stats.pending}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </header>
 
-      {/* ── Main content ──────────────────────────────────────────── */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-5 pb-24 md:pb-8 page-enter">
+      {/* ── Content ────────────────────────────────────── */}
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-5 pb-24 md:pb-8 animate-fade-in">
         {tab === 'receipts' && (
           <ReceiptFeed
-            globalDateFilter={dateFilter}
-            onDateFilterChange={setDateFilter}
-            onStatsRefresh={refreshStats}
+            globalDate={dateCtx}
+            onDateChange={setDateCtx}
+            onRefreshStats={refresh}
           />
         )}
-        {tab === 'clients' && (
-          <ClientList />
-        )}
-        {tab === 'reports' && (
-          <ReportChat />
-        )}
+        {tab === 'clients' && <ClientList />}
+        {tab === 'reports' && <ReportChat />}
       </main>
 
-      {/* ── Mobile bottom nav ─────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-xl border-t border-surface-border pb-safe">
+      {/* ── Mobile bottom nav ──────────────────────────── */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe"
+        style={{
+          background: 'rgba(8,13,24,0.96)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '0.5px solid rgba(100,150,255,0.09)',
+        }}
+      >
         <div className="flex justify-around py-1">
           {TABS.map(({ id, label, Icon }) => (
             <button
@@ -178,8 +255,15 @@ export default function App() {
             >
               <div className="relative">
                 <Icon size={22} />
-                {id === 'receipts' && stats?.pending > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-status-suspicious text-[#0a0a0f] rounded-full flex items-center justify-center text-2xs font-black">
+                {id === 'receipts' && (stats?.pending ?? 0) > 0 && (
+                  <span
+                    className="absolute -top-1 -right-2 min-w-4 h-4 flex items-center justify-center
+                               rounded-full text-[9px] font-black px-1"
+                    style={{
+                      background: '#F59E0B',
+                      color: '#080D18',
+                    }}
+                  >
                     {stats.pending > 9 ? '9+' : stats.pending}
                   </span>
                 )}
@@ -190,15 +274,6 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Offline banner */}
-      {!connected && (
-        <div className="fixed top-20 inset-x-4 z-50 animate-slide-up">
-          <div className="max-w-3xl mx-auto bg-status-rejected-bg border border-status-rejected-border rounded-xl p-3 flex items-center gap-2 text-status-rejected text-sm font-medium">
-            <AlertTriangle size={16} />
-            Sem conexão com o servidor — tentando reconectar…
-          </div>
-        </div>
-      )}
     </div>
   )
 }

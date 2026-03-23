@@ -3,74 +3,57 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 export default function Pagination({ total, limit, offset, onChange }) {
   if (total <= limit) return null
 
-  const currentPage = Math.floor(offset / limit) + 1
-  const totalPages  = Math.ceil(total / limit)
-  const start       = offset + 1
-  const end         = Math.min(offset + limit, total)
+  const page  = Math.floor(offset / limit) + 1
+  const pages = Math.ceil(total / limit)
+  const start = offset + 1
+  const end   = Math.min(offset + limit, total)
 
-  function goTo(page) {
-    onChange((page - 1) * limit)
-  }
-
-  // Build visible page numbers
-  const pages = []
-  const delta = 1
-  const left  = currentPage - delta
-  const right = currentPage + delta
-
-  let lastAdded = 0
-  for (let p = 1; p <= totalPages; p++) {
-    if (p === 1 || p === totalPages || (p >= left && p <= right)) {
-      if (lastAdded && p - lastAdded > 1) pages.push('...')
-      pages.push(p)
-      lastAdded = p
+  const nums = []
+  for (let p = 1; p <= pages; p++) {
+    if (p === 1 || p === pages || Math.abs(p - page) <= 1) {
+      if (nums.length && p - nums[nums.length - 1] > 1) nums.push('…')
+      nums.push(p)
     }
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 pt-4">
-      {/* Info text */}
-      <p className="text-xs text-ink-muted">
-        Mostrando <span className="text-ink font-semibold">{start}–{end}</span> de{' '}
-        <span className="text-ink font-semibold">{total}</span> itens
+    <div
+      className="mt-4 pt-4 flex flex-col items-center gap-3"
+      style={{ borderTop: '0.5px solid rgba(100,150,255,0.07)' }}
+    >
+      <p className="text-[11px] text-ink3 font-mono">
+        {start}–{end} de <span className="text-ink2 font-semibold">{total}</span>
       </p>
-
-      {/* Controls */}
       <div className="flex items-center gap-1">
         <button
-          onClick={() => goTo(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="btn-ghost py-1.5 px-2 disabled:opacity-30"
-          aria-label="Página anterior"
+          onClick={() => onChange((page - 2) * limit)}
+          disabled={page === 1}
+          className="btn-ghost disabled:opacity-30"
+          aria-label="anterior"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={14} />
         </button>
-
-        {pages.map((p, i) =>
-          p === '...'
-            ? <span key={`dots-${i}`} className="px-2 text-ink-muted text-sm">…</span>
+        {nums.map((p, i) =>
+          p === '…'
+            ? <span key={`d${i}`} className="px-2 text-ink3 text-[12px]">…</span>
             : (
               <button
                 key={p}
-                onClick={() => goTo(p)}
-                className={
-                  p === currentPage
-                    ? 'chip-active min-w-[2rem] justify-center'
-                    : 'chip-default min-w-[2rem] justify-center'
-                }
+                onClick={() => onChange((p - 1) * limit)}
+                className={p === page ? 'chip-active' : 'chip-default'}
+                style={{ minWidth: 32, justifyContent: 'center' }}
               >
                 {p}
               </button>
             )
         )}
-
         <button
-          onClick={() => goTo(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="btn-ghost py-1.5 px-2 disabled:opacity-30"
-          aria-label="Próxima página"
+          onClick={() => onChange(page * limit)}
+          disabled={page === pages}
+          className="btn-ghost disabled:opacity-30"
+          aria-label="próxima"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={14} />
         </button>
       </div>
     </div>

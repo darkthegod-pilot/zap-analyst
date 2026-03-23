@@ -1,80 +1,118 @@
 import { useState } from 'react'
 import {
-  ChevronDown, ChevronUp, CheckCircle, XCircle,
-  AlertTriangle, Shield, ShieldOff, Loader2,
-  Building2, DollarSign, CalendarDays, Hash, User, ArrowRightLeft,
+  ChevronDown, ChevronUp,
+  CheckCircle, XCircle, AlertTriangle,
+  Building2, DollarSign, CalendarDays, Hash,
+  ArrowUp, ArrowDown, Loader2, ImageOff,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import StatusBadge from './StatusBadge'
 import { api } from '../api'
 
-/* ── Score bar ─────────────────────────────────── */
-function ScoreBar({ score }) {
-  const pct   = Math.round((score ?? 0) * 100)
-  const color = pct >= 85 ? '#00ff88' : pct >= 55 ? '#ffb020' : '#ff4466'
+/* ─────────────────────────────────────────────────
+   SIGNATURE ELEMENT: Confidence Arc
+   Forensic score visualisation — circular arc dial
+   that shows AI authenticity confidence.
+   No other app would have this exact component.
+──────────────────────────────────────────────── */
+function ConfidenceArc({ score }) {
+  const pct = Math.round((score ?? 0) * 100)
+  const radius  = 19
+  const stroke  = 2.5
+  const circ    = 2 * Math.PI * radius
+  const gap     = circ * 0.22            // leave a 22% gap at the bottom
+  const arc     = circ - gap
+  const fill    = (pct / 100) * arc
+  const color   = pct >= 85 ? '#10B981' : pct >= 55 ? '#F59E0B' : '#EF4444'
+  const glow    = pct >= 85 ? 'rgba(16,185,129,0.55)' : pct >= 55 ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)'
+  const size    = (radius + stroke) * 2 + 2
+  const rotate  = 90 + (360 * 0.11)     // rotate so gap is at bottom
+
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center">
-        <span className="text-2xs text-ink-muted">Confiança</span>
-        <span className="text-xs font-bold tabular-nums" style={{ color }}>{pct}%</span>
-      </div>
-      <div className="score-track">
-        <div
-          className="score-fill"
-          style={{ width: `${pct}%`, background: color, boxShadow: `0 0 6px ${color}60` }}
+    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: `rotate(${rotate}deg)` }}>
+        {/* Track */}
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke="rgba(100,150,255,0.07)"
+          strokeWidth={stroke}
+          strokeDasharray={`${arc} ${circ - arc}`}
+          strokeLinecap="round"
         />
+        {/* Fill */}
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeDasharray={`${fill} ${circ - fill}`}
+          strokeLinecap="round"
+          style={{
+            filter:     `drop-shadow(0 0 4px ${glow})`,
+            transition: 'stroke-dasharray 0.8s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        />
+      </svg>
+      {/* Centre label */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0">
+        <span
+          className="font-mono font-black tabular lining leading-none"
+          style={{ fontSize: 13, color }}
+        >{pct}</span>
+        <span className="font-mono text-ink3 leading-none" style={{ fontSize: 8 }}>%</span>
       </div>
     </div>
   )
+}
+
+/* ── Status → card shadow ──────────────────────── */
+function cardShadow(status) {
+  if (status === 'approved')   return '0 0 0 0.5px rgba(16,185,129,0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(16,185,129,0.08)'
+  if (status === 'suspicious') return '0 0 0 0.5px rgba(245,158,11,0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(245,158,11,0.08)'
+  if (status === 'rejected')   return '0 0 0 0.5px rgba(239,68,68,0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(239,68,68,0.08)'
+  return '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25)'
 }
 
 /* ── Data row ──────────────────────────────────── */
-function DataRow({ Icon, label, value }) {
+function DataRow({ Icon, label, value, mono }) {
   if (!value) return null
   return (
-    <div className="flex items-start gap-2">
-      <div className="mt-0.5 shrink-0 w-4 h-4 flex items-center justify-center">
-        <Icon size={13} className="text-ink-muted" />
-      </div>
+    <div className="flex items-start gap-2 min-w-0">
+      <Icon size={12} className="text-ink3 mt-[3px] shrink-0" />
       <div className="min-w-0">
-        <p className="text-2xs text-ink-muted leading-none">{label}</p>
-        <p className="text-sm text-ink font-medium mt-0.5 break-all">{value}</p>
+        <p className="label">{label}</p>
+        <p className={`text-[12px] text-ink mt-0.5 ${mono ? 'font-mono' : 'font-medium'} break-all leading-snug`}>
+          {value}
+        </p>
       </div>
     </div>
   )
 }
 
-/* ── Status glow border ────────────────────────── */
-function statusBorderClass(status) {
-  switch (status) {
-    case 'approved':   return 'border-status-approved-border shadow-glow-green'
-    case 'rejected':   return 'border-status-rejected-border shadow-glow-red'
-    case 'suspicious': return 'border-status-suspicious-border shadow-glow-yellow'
-    default:           return 'border-surface-border'
-  }
-}
-
-/* ── Main card ─────────────────────────────────── */
+/* ─────────────────────────────────────────────────
+   MAIN CARD
+──────────────────────────────────────────────── */
 export default function ReceiptCard({ receipt, onRefresh }) {
-  const [expanded, setExpanded] = useState(false)
-  const [loading,  setLoading]  = useState(null) // 'approve' | 'reject'
+  const [open,    setOpen]    = useState(false)
+  const [loading, setLoading] = useState(null)
 
   const a = receipt.analysis
-  const canAction = receipt.status === 'pending' || receipt.status === 'suspicious'
+  const canAct = receipt.status === 'pending' || receipt.status === 'suspicious'
 
-  const imageUrl = receipt.image_path
+  const imgUrl = receipt.image_path
     ? `/uploads/${receipt.image_path.split('/').pop()}`
     : receipt.image_url
 
-  async function handleAction(action) {
+  async function act(action) {
     setLoading(action)
     try {
       if (action === 'approve') {
         await api.approveReceipt(receipt.id)
-        toast.success('Comprovante aprovado!')
+        toast.success('Comprovante aprovado')
       } else {
         await api.rejectReceipt(receipt.id)
-        toast('Comprovante rejeitado.', { icon: '❌' })
+        toast('Comprovante rejeitado', { icon: '🚫' })
       }
       onRefresh?.()
     } catch (e) {
@@ -84,168 +122,219 @@ export default function ReceiptCard({ receipt, onRefresh }) {
     }
   }
 
+  const time = new Date(receipt.received_at + 'Z').toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  })
+
   return (
     <article
-      className={`card border transition-all duration-200 animate-fade-in ${statusBorderClass(receipt.status)} overflow-hidden`}
+      className="rounded-[10px] overflow-hidden animate-fade-in"
+      style={{ background: '#0D1525', boxShadow: cardShadow(receipt.status) }}
     >
-      {/* ── Collapsed row ── */}
+      {/* ── Collapsed Row ─────────────────────────── */}
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer select-none active:bg-surface-hover"
-        onClick={() => setExpanded(v => !v)}
+        className="flex items-center gap-3 p-3 cursor-pointer select-none
+                   transition-colors duration-150 active:opacity-80"
+        style={{ background: 'transparent' }}
+        onClick={() => setOpen(v => !v)}
         role="button"
-        aria-expanded={expanded}
+        aria-expanded={open}
       >
+
         {/* Thumbnail */}
         <div className="shrink-0">
-          {imageUrl ? (
-            <a
-              href={imageUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={e => e.stopPropagation()}
-            >
+          {imgUrl ? (
+            <a href={imgUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>
               <img
-                src={imageUrl}
-                alt="Comprovante"
-                className="w-14 h-14 rounded-xl object-cover border border-surface-border hover:opacity-80 transition"
+                src={imgUrl}
+                alt="comprovante"
                 loading="lazy"
+                className="rounded-[7px] object-cover transition-opacity hover:opacity-75"
+                style={{
+                  width: 52, height: 52,
+                  boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10)',
+                }}
               />
             </a>
           ) : (
-            <div className="w-14 h-14 rounded-xl bg-surface-raised border border-surface-border flex items-center justify-center">
-              <ArrowRightLeft size={20} className="text-ink-muted" />
+            <div
+              className="rounded-[7px] flex items-center justify-center"
+              style={{
+                width: 52, height: 52,
+                background: 'rgba(100,150,255,0.05)',
+                boxShadow: '0 0 0 0.5px rgba(100,150,255,0.09)',
+              }}
+            >
+              <ImageOff size={18} className="text-ink3" />
             </div>
           )}
         </div>
 
         {/* Main info */}
         <div className="flex-1 min-w-0 space-y-1">
+          {/* Bank name or client */}
+          <p className="text-[13px] font-bold text-ink truncate leading-none">
+            {a?.bank_name || receipt.client?.name || receipt.client?.phone || `#${receipt.client_id}`}
+          </p>
+          {/* Amount (if available) */}
+          {a?.amount ? (
+            <p className="font-mono font-black text-[14px] tabular lining" style={{ color: '#34D399' }}>
+              {a.amount}
+            </p>
+          ) : (
+            <p className="text-[12px] text-ink3">
+              {receipt.client?.name || receipt.client?.phone || `—`}
+            </p>
+          )}
+          {/* Time + status */}
           <div className="flex items-center gap-2 flex-wrap">
-            <StatusBadge status={receipt.status} size="xs" />
-            {a?.is_authentic === true  && <Shield    size={12} className="text-status-approved"   />}
-            {a?.is_authentic === false && <ShieldOff size={12} className="text-status-rejected"   />}
+            <StatusBadge status={receipt.status} />
+            <span className="font-mono text-[10px] text-ink3">{time}</span>
           </div>
-          <p className="font-semibold text-sm text-ink truncate">
-            {receipt.client?.name || receipt.client?.phone || `#${receipt.client_id}`}
-          </p>
-          <p className="text-2xs text-ink-muted">
-            {new Date(receipt.received_at + 'Z').toLocaleString('pt-BR', {
-              day: '2-digit', month: '2-digit', year: 'numeric',
-              hour: '2-digit', minute: '2-digit',
-            })}
-          </p>
         </div>
 
-        {/* Amount + score */}
-        <div className="shrink-0 text-right space-y-1 min-w-[80px]">
-          {a?.amount && (
-            <p className="text-sm font-black text-status-approved">{a.amount}</p>
-          )}
-          {a && (
-            <div className="w-20">
-              <ScoreBar score={a.confidence_score} />
+        {/* Confidence arc / pending indicator */}
+        <div className="shrink-0 flex items-center gap-2">
+          {a ? (
+            <ConfidenceArc score={a.confidence_score} />
+          ) : (
+            <div className="w-11 h-11 flex items-center justify-center">
+              <Loader2 size={16} className="text-ink3 animate-spin" />
             </div>
           )}
-          {!a && receipt.status === 'pending' && (
-            <span className="text-2xs text-ink-muted italic">Analisando…</span>
-          )}
-        </div>
-
-        {/* Chevron */}
-        <div className="shrink-0 text-ink-muted ml-1">
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <span className="text-ink3 shrink-0">
+            {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </span>
         </div>
       </div>
 
-      {/* ── Expanded details ── */}
-      {expanded && (
-        <div className="border-t border-surface-border animate-slide-up">
-          {a ? (
-            <div className="p-4 space-y-4">
-              {/* Extracted data grid */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-x-6 gap-y-3">
-                <DataRow Icon={Building2}      label="Banco"         value={a.bank_name}       />
-                <DataRow Icon={DollarSign}     label="Valor"         value={a.amount}           />
-                <DataRow Icon={CalendarDays}   label="Data"          value={a.transaction_date} />
-                <DataRow Icon={Hash}           label="ID Transação"  value={a.transaction_id}   />
-                <DataRow Icon={User}           label="Pagador"       value={a.sender_name}      />
-                <DataRow Icon={User}           label="Beneficiário"  value={a.recipient_name}   />
-              </div>
+      {/* ── Expanded Details ──────────────────────── */}
+      {open && (
+        <div className="animate-slide-up">
+          <div className="divider" />
 
-              {/* Fraud indicators */}
-              {a.fraud_indicators?.length > 0 && (
-                <div className="bg-status-rejected-bg border border-status-rejected-border rounded-xl p-3 space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <AlertTriangle size={13} className="text-status-rejected" />
-                    <span className="text-xs font-bold text-status-rejected uppercase tracking-wide">
-                      Alertas de Fraude
-                    </span>
+          <div className="p-4 space-y-4">
+            {a ? (
+              <>
+                {/* Confidence context bar */}
+                <div
+                  className="rounded-[8px] p-3 flex items-center gap-4"
+                  style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+                >
+                  <ConfidenceArc score={a.confidence_score} />
+                  <div className="flex-1 min-w-0">
+                    <p className="label mb-1">Análise de Autenticidade</p>
+                    <p className="text-[12px] text-ink leading-snug">
+                      {a.is_authentic === true  && '✓ Comprovante provavelmente autêntico'}
+                      {a.is_authentic === false && '✗ Comprovante possivelmente falsificado'}
+                      {a.is_authentic === null  && 'Autenticidade inconclusiva'}
+                    </p>
+                    {(a.fraud_indicators?.length ?? 0) > 0 && (
+                      <p className="text-[11px] mt-1" style={{ color: '#F59E0B' }}>
+                        {a.fraud_indicators.length} alerta{a.fraud_indicators.length > 1 ? 's' : ''} detectado{a.fraud_indicators.length > 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
-                  <ul className="space-y-1">
-                    {a.fraud_indicators.map((item, i) => (
-                      <li key={i} className="text-xs text-status-rejected/80 flex items-start gap-1.5">
-                        <span className="mt-1 shrink-0 w-1 h-1 rounded-full bg-status-rejected/60 inline-block" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              )}
 
-              {/* AI Summary */}
-              {a.ai_summary && (
-                <div className="bg-surface-raised rounded-xl p-3 border border-surface-border">
-                  <p className="text-2xs text-ink-muted mb-1 uppercase tracking-wider font-semibold">Resumo da IA</p>
-                  <p className="text-sm text-ink leading-relaxed">{a.ai_summary}</p>
+                {/* Extracted data — forensic grid */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <DataRow Icon={Building2}    label="Banco"        value={a.bank_name}       />
+                  <DataRow Icon={DollarSign}   label="Valor"        value={a.amount}          mono />
+                  <DataRow Icon={CalendarDays} label="Data"         value={a.transaction_date}mono />
+                  <DataRow Icon={Hash}         label="ID Transação" value={a.transaction_id}  mono />
+                  <DataRow Icon={ArrowUp}      label="Pagador"      value={a.sender_name}     />
+                  <DataRow Icon={ArrowDown}    label="Beneficiário" value={a.recipient_name}  />
                 </div>
-              )}
 
-              {/* Error */}
-              {a.error && (
-                <div className="bg-status-rejected-bg border border-status-rejected-border rounded-xl p-3">
-                  <p className="text-xs text-status-rejected">⚠ Erro na análise: {a.error}</p>
-                </div>
-              )}
+                {/* Fraud indicators */}
+                {(a.fraud_indicators?.length ?? 0) > 0 && (
+                  <div
+                    className="rounded-[8px] p-3 space-y-2"
+                    style={{
+                      background: 'rgba(239,68,68,0.07)',
+                      boxShadow: '0 0 0 0.5px rgba(239,68,68,0.20)',
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle size={12} className="text-danger" />
+                      <span className="label" style={{ color: '#F87171' }}>
+                        Alertas de Fraude
+                      </span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {a.fraud_indicators.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-danger/80">
+                          <span className="mt-1.5 w-1 h-1 rounded-full bg-danger/60 shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-              {/* Notes */}
-              {receipt.notes && (
-                <p className="text-xs text-ink-secondary italic border-l-2 border-surface-border pl-3">
-                  {receipt.notes}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="p-6 flex items-center justify-center gap-3 text-ink-muted">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm italic">Análise em andamento…</span>
-            </div>
-          )}
+                {/* AI Summary */}
+                {a.ai_summary && (
+                  <div
+                    className="rounded-[8px] p-3"
+                    style={{
+                      background: 'rgba(100,150,255,0.04)',
+                      boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)',
+                    }}
+                  >
+                    <p className="label mb-1.5">Resumo da IA</p>
+                    <p className="text-[12px] text-ink2 leading-relaxed">{a.ai_summary}</p>
+                  </div>
+                )}
 
-          {/* ── Action buttons ── */}
-          {canAction && (
-            <div className="px-4 pb-4 flex gap-3">
-              <button
-                onClick={() => handleAction('approve')}
-                disabled={!!loading}
-                className="btn-success flex-1"
-              >
-                {loading === 'approve'
-                  ? <Loader2 size={15} className="animate-spin" />
-                  : <CheckCircle size={15} />}
-                Aprovar
-              </button>
-              <button
-                onClick={() => handleAction('reject')}
-                disabled={!!loading}
-                className="btn-danger flex-1"
-              >
-                {loading === 'reject'
-                  ? <Loader2 size={15} className="animate-spin" />
-                  : <XCircle size={15} />}
-                Rejeitar
-              </button>
-            </div>
-          )}
+                {/* Error */}
+                {a.error && (
+                  <p className="text-[12px] text-danger/80 pl-3 border-l-2 border-danger/30">
+                    Erro: {a.error}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-3 py-4 justify-center text-ink3">
+                <Loader2 size={14} className="animate-spin" />
+                <span className="text-[12px] italic">Análise em andamento…</span>
+              </div>
+            )}
+
+            {/* Notes */}
+            {receipt.notes && (
+              <p className="text-[11px] text-ink3 italic pl-3 border-l-2 border-ink4">
+                {receipt.notes}
+              </p>
+            )}
+
+            {/* Action buttons */}
+            {canAct && (
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => act('approve')}
+                  disabled={!!loading}
+                  className="btn-ok flex-1"
+                >
+                  {loading === 'approve'
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : <CheckCircle size={14} />}
+                  Aprovar
+                </button>
+                <button
+                  onClick={() => act('reject')}
+                  disabled={!!loading}
+                  className="btn-danger flex-1"
+                >
+                  {loading === 'reject'
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : <XCircle size={14} />}
+                  Rejeitar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </article>
