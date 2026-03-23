@@ -207,9 +207,14 @@ async def request_report(
     period = "today"
     send_whatsapp = False
 
-    if settings.openai_api_key:
+    from app.api.settings import get_effective_settings
+    s = get_effective_settings(db)
+    openai_key  = s.get("openai_api_key") or settings.openai_api_key
+    admin_phone = s.get("admin_phone")    or settings.admin_phone
+
+    if openai_key:
         try:
-            client = AsyncOpenAI(api_key=settings.openai_api_key)
+            client = AsyncOpenAI(api_key=openai_key)
             resp = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": INTERPRET_PROMPT + body.message}],
@@ -228,7 +233,7 @@ async def request_report(
     report_text = build_daily_report(db, target_date)
 
     if send_whatsapp:
-        background_tasks.add_task(zapi.send_text, settings.admin_phone, report_text)
+        background_tasks.add_task(zapi.send_text, admin_phone, report_text, s)
 
     return {
         "report": report_text,

@@ -89,8 +89,11 @@ def build_daily_report(db: Session, target_date: Optional[date] = None) -> str:
 
 async def send_daily_report(db: Session) -> None:
     try:
+        from app.api.settings import get_effective_settings
+        s = get_effective_settings(db)
+        admin_phone = s.get("admin_phone") or settings.admin_phone
         report = build_daily_report(db)
-        success = await zapi.send_text(settings.admin_phone, report)
+        success = await zapi.send_text(admin_phone, report, effective=s)
         if success:
             logger.info("Daily report sent to admin")
         else:

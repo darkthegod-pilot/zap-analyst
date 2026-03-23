@@ -1,19 +1,18 @@
 import hashlib
 import logging
-import os
 import re
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models.database import get_db
+from app.models.database import get_db, SessionLocal
 from app.models.client import Client
 from app.models.receipt import Receipt, ReceiptStatus
+from app.services import zapi as zapi_svc
 from app.services.analyzer import analyze_receipt
 
 logger = logging.getLogger(__name__)
@@ -29,6 +28,17 @@ async def zapi_webhook(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
+    # ── Verificação de segurança: Client-Token ──────────────────
+    from app.api.settings import get_effective_settings
+    s = get_effective_settings(db)
+    expected_token = s.get("zapi_security_token", "")
+    if expected_token:
+        incoming_token = request.headers.get("Client-Token", "")
+        if incoming_token != expected_token:
+            ip = request.client.host if request.client else "unknown"
+            logger.warning(f"Webhook rejected: invalid Client-Token from {ip}")
+            return {"ok": True}  # 200 silencioso para não revelar o endpoint
+
     try:
         body = await request.json()
     except Exception:
@@ -39,7 +49,6 @@ async def zapi_webhook(
     # Normalise: ZAPI sends different shapes depending on event type
     is_from_me = body.get("fromMe", False)
     phone = _extract_phone(body)
-    message_type = body.get("type", "")
     text = body.get("text", {})
     if isinstance(text, dict):
         text = text.get("message", "")
@@ -79,8 +88,7 @@ async def zapi_webhook(
                 db.commit()
                 db.refresh(receipt)
 
-                # Save image locally
-                background_tasks.add_task(_save_and_analyze, receipt.id, image_url, db)
+                background_tasks.add_task(_save_and_analyze, receipt.id, image_url)
                 logger.info(f"New receipt #{receipt.id} from client {phone}")
 
     return {"ok": True}
@@ -100,36 +108,34 @@ def _register_client(phone: str, db: Session) -> Client:
     return client
 
 
-async def _save_and_analyze(receipt_id: int, image_url: str, db: Session):
-    """Download image, save locally, compute hash, check duplicate, then run AI analysis."""
-    from app.models.database import SessionLocal
-    # Create a fresh DB session for background task
+async def _save_and_analyze(receipt_id: int, image_url: str):
+    """Download image with ZAPI auth, save locally, check duplicate, run AI analysis."""
+    from app.api.settings import get_effective_settings
     bg_db = SessionLocal()
     try:
         receipt = bg_db.query(Receipt).filter(Receipt.id == receipt_id).first()
         if not receipt:
             return
 
-        img_bytes = None
+        # Load effective settings (includes DB-configured credentials)
+        s = get_effective_settings(bg_db)
 
-        # Download and save
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(image_url, follow_redirects=True)
-                resp.raise_for_status()
-                img_bytes = resp.content
-                content_type = resp.headers.get("content-type", "image/jpeg")
-                ext = _ext_from_mime(content_type)
+        # Download image using ZAPI auth headers
+        img_bytes = await zapi_svc.download_image(image_url, effective=s)
+
+        if img_bytes:
+            # Save locally
+            try:
+                ext = ".jpg"
                 filename = f"{uuid.uuid4()}{ext}"
                 save_path = Path(settings.upload_dir) / filename
                 save_path.write_bytes(img_bytes)
                 receipt.image_path = str(save_path)
                 bg_db.commit()
-        except Exception as e:
-            logger.warning(f"Could not save image locally: {e} — will use URL")
+            except Exception as e:
+                logger.warning(f"Could not save image locally: {e}")
 
-        # Compute SHA-256 hash and check for duplicates
-        if img_bytes:
+            # Compute SHA-256 hash and check for duplicates
             img_hash = hashlib.sha256(img_bytes).hexdigest()
             receipt.image_hash = img_hash
 
@@ -148,6 +154,8 @@ async def _save_and_analyze(receipt_id: int, image_url: str, db: Session):
                 return  # skip AI analysis
 
             bg_db.commit()
+        else:
+            logger.warning(f"Receipt #{receipt_id}: image download failed, will attempt via URL in analyzer")
 
         await analyze_receipt(receipt_id, bg_db)
     except Exception as e:
@@ -173,7 +181,7 @@ def _extract_phone(body: dict) -> str | None:
 
 def _extract_image_url(body: dict) -> str | None:
     """Extract image URL from ZAPI message payload."""
-    # image type
+    # image type (ZAPI v2)
     img = body.get("image", {}) or {}
     if isinstance(img, dict):
         url = img.get("imageUrl") or img.get("url")
@@ -187,14 +195,3 @@ def _extract_image_url(body: dict) -> str | None:
             return val
 
     return None
-
-
-def _ext_from_mime(content_type: str) -> str:
-    mapping = {
-        "image/jpeg": ".jpg",
-        "image/png": ".png",
-        "image/webp": ".webp",
-        "image/gif": ".gif",
-    }
-    mime = content_type.split(";")[0].strip()
-    return mapping.get(mime, ".jpg")

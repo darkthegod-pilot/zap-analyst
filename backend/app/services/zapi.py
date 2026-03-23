@@ -6,30 +6,32 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def _base_url() -> str:
-    return (
-        f"https://api.z-api.io/instances/{settings.zapi_instance_id}"
-        f"/token/{settings.zapi_token}"
-    )
+def _resolve(effective: dict | None, key: str, fallback: str) -> str:
+    """Return DB-effective value if present, otherwise .env fallback."""
+    if effective:
+        val = effective.get(key, "")
+        if val:
+            return str(val)
+    return fallback
 
 
-def _headers() -> dict:
-    return {
-        "Content-Type": "application/json",
-        "Client-Token": settings.zapi_security_token,
-    }
+async def send_text(phone: str, message: str, effective: dict | None = None) -> bool:
+    """Send a text message via ZAPI, using DB-effective credentials if provided."""
+    instance_id = _resolve(effective, "zapi_instance_id", settings.zapi_instance_id)
+    token       = _resolve(effective, "zapi_token",       settings.zapi_token)
+    sec_token   = _resolve(effective, "zapi_security_token", settings.zapi_security_token)
 
-
-async def send_text(phone: str, message: str) -> bool:
-    """Send a text message via ZAPI."""
-    if not settings.zapi_instance_id or not settings.zapi_token:
+    if not instance_id or not token:
         logger.warning("ZAPI not configured — skipping send_text")
         return False
     try:
-        url = f"{_base_url()}/send-text"
+        url = f"https://api.z-api.io/instances/{instance_id}/token/{token}/send-text"
+        headers = {"Content-Type": "application/json"}
+        if sec_token:
+            headers["Client-Token"] = sec_token
         payload = {"phone": phone, "message": message}
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(url, json=payload, headers=_headers())
+            resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             logger.info(f"Message sent to {phone}")
             return True
@@ -38,10 +40,13 @@ async def send_text(phone: str, message: str) -> bool:
         return False
 
 
-async def download_image(image_url: str) -> bytes | None:
-    """Download an image from ZAPI media URL."""
+async def download_image(image_url: str, effective: dict | None = None) -> bytes | None:
+    """Download an image from ZAPI media URL, with auth headers."""
+    sec_token = _resolve(effective, "zapi_security_token", settings.zapi_security_token)
+    headers = {}
+    if sec_token:
+        headers["Client-Token"] = sec_token
     try:
-        headers = _headers()
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(image_url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
