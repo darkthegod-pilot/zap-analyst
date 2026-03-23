@@ -169,3 +169,28 @@ def get_client_score(client_id: int, db: Session = Depends(get_db)):
         streak=client.streak if client.streak is not None else 0,
         history=history,
     )
+
+
+@router.get("/calote", response_model=PaginatedClients)
+def list_calote_clients(
+    limit: int = PAGE_SIZE,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    """List clients flagged as calote (7+ consecutive missed days)."""
+    q = db.query(Client).filter(Client.calote == True)
+    total = q.count()
+    clients_list = q.order_by(Client.days_overdue.desc()).offset(offset).limit(limit).all()
+    return PaginatedClients(items=[_to_response(c) for c in clients_list], total=total, limit=limit, offset=offset)
+
+
+@router.patch("/{client_id}/remove-calote")
+def remove_calote(client_id: int, db: Session = Depends(get_db)):
+    """Manually remove calote flag from a client."""
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    client.calote = False
+    client.days_overdue = 0
+    db.commit()
+    return {"ok": True}

@@ -19,6 +19,8 @@ class ClientResponse(ClientBase):
     frozen: bool = False
     score: int = 1000
     streak: int = 0
+    calote: bool = False
+    days_overdue: int = 0
     receipts_count: Optional[int] = 0
 
     class Config:

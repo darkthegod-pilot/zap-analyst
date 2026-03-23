@@ -37,12 +37,14 @@ function ScoreArc({ score }) {
 
 /* ─── Day cell in calendar grid ─────────────────── */
 const STATUS_COLORS = {
+  paid_early:   { bg: 'rgba(16,185,129,0.30)', glow: '0 0 8px rgba(16,185,129,0.6)', label: '⚡' },
   paid_on_time: { bg: 'rgba(16,185,129,0.20)', glow: '0 0 6px rgba(16,185,129,0.5)', label: '✅' },
-  paid_late:    { bg: 'rgba(245,158,11,0.20)',  glow: '0 0 6px rgba(245,158,11,0.4)',  label: '⏰' },
-  missed:       { bg: 'rgba(239,68,68,0.20)',   glow: '0 0 4px rgba(239,68,68,0.3)',   label: '❌' },
-  sunday:       { bg: 'rgba(30,45,79,0.5)',     glow: 'none',                           label: '' },
-  future:       { bg: 'rgba(18,29,53,0.6)',     glow: 'none',                           label: '' },
-  unknown:      { bg: 'rgba(30,45,79,0.3)',     glow: 'none',                           label: '' },
+  paid_normal:  { bg: 'rgba(75,184,130,0.14)', glow: '0 0 4px rgba(75,184,130,0.3)', label: '🟡' },
+  paid_late:    { bg: 'rgba(245,158,11,0.20)',  glow: '0 0 6px rgba(245,158,11,0.4)', label: '⏰' },
+  missed:       { bg: 'rgba(239,68,68,0.20)',   glow: '0 0 4px rgba(239,68,68,0.3)',  label: '❌' },
+  sunday:       { bg: 'rgba(30,45,79,0.5)',     glow: 'none',                          label: '' },
+  future:       { bg: 'rgba(18,29,53,0.6)',     glow: 'none',                          label: '' },
+  unknown:      { bg: 'rgba(30,45,79,0.3)',     glow: 'none',                          label: '' },
 }
 
 function DayCell({ item }) {
@@ -88,7 +90,7 @@ export default function ClientDetailModal({ client, onClose }) {
   const streak = scoreData?.streak ?? client.streak ?? 0
   const history = scoreData?.history ?? []
 
-  const onTime  = history.filter(d => d.status === 'paid_on_time').length
+  const onTime  = history.filter(d => ['paid_early','paid_on_time','paid_normal'].includes(d.status)).length
   const late    = history.filter(d => d.status === 'paid_late').length
   const missed  = history.filter(d => d.status === 'missed').length
 
@@ -207,9 +209,11 @@ export default function ClientDetailModal({ client, onClose }) {
                 {/* Legend */}
                 <div className="flex flex-wrap gap-3 pt-1">
                   {[
-                    { status: 'paid_on_time', label: 'No prazo' },
-                    { status: 'paid_late',    label: 'Atrasado' },
-                    { status: 'missed',       label: 'Faltou'   },
+                    { status: 'paid_early',   label: 'Antes 12h' },
+                    { status: 'paid_on_time', label: '12h–16h'   },
+                    { status: 'paid_normal',  label: '16h+'      },
+                    { status: 'paid_late',    label: 'Atrasado'  },
+                    { status: 'missed',       label: 'Faltou'    },
                   ].map(l => (
                     <div key={l.status} className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-[3px]"
@@ -227,9 +231,12 @@ export default function ClientDetailModal({ client, onClose }) {
             style={{ background: 'rgba(100,150,255,0.03)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
             <p className="section-title">Como funciona o score?</p>
             <div className="space-y-1 text-[11px] text-ink3">
-              <p>✅ Pago no prazo (até 18h): streak +1, +2 a +20 pts</p>
-              <p>⏰ Pago em atraso (após 18h): streak -1, -10 pts</p>
+              <p>⚡ Antes das 12h: streak +1, +30 pts (bônus por streak)</p>
+              <p>✅ 12h–16h: streak +1, +20 pts (bônus por streak)</p>
+              <p>🟡 16h–23:58: +5 pts (sem streak)</p>
+              <p>⏰ 1 dia de atraso: streak = 0, -50 pts</p>
               <p>❌ Não pagou: streak = 0, -50 pts</p>
+              <p>🚨 7+ dias: marcado como calote</p>
               <p>📅 Domingo: sem cobrança</p>
             </div>
           </div>

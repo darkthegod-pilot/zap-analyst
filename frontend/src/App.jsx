@@ -1,20 +1,24 @@
 import { useState, useCallback } from 'react'
 import {
-  FileStack, Users, BarChart3,
+  FileStack, Users, BarChart3, AlertOctagon, Settings,
   RefreshCw, CheckCircle, AlertTriangle, Clock, XCircle,
 } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import { usePolling }    from './hooks/usePolling'
 import { api }           from './api'
 import { presetToDates } from './components/DateFilter'
-import ReceiptFeed from './components/ReceiptFeed'
-import ClientList  from './components/ClientList'
-import ReportChat  from './components/ReportChat'
+import ReceiptFeed     from './components/ReceiptFeed'
+import ClientList      from './components/ClientList'
+import ReportDashboard from './components/ReportDashboard'
+import CalotePage      from './components/CalotePage'
+import SettingsPage    from './components/SettingsPage'
 
 const TABS = [
-  { id: 'receipts', label: 'Comprovantes', Icon: FileStack  },
-  { id: 'clients',  label: 'Clientes',     Icon: Users      },
-  { id: 'reports',  label: 'Relatórios',   Icon: BarChart3  },
+  { id: 'receipts',  label: 'Comprovantes', Icon: FileStack      },
+  { id: 'clients',   label: 'Clientes',     Icon: Users          },
+  { id: 'reports',   label: 'Relatórios',   Icon: BarChart3      },
+  { id: 'calote',    label: 'Calote',       Icon: AlertOctagon   },
+  { id: 'settings',  label: 'Config.',      Icon: Settings       },
 ]
 
 const TODAY = presetToDates('today')
@@ -142,52 +146,54 @@ export default function App() {
           </button>
         </div>
 
-        {/* Stats strip */}
-        <div
-          className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          <StatPill
-            Icon={FileStack}
-            value={stats?.total}
-            label="total"
-            color="#7A8DB5"
-            bg="rgba(100,150,255,0.05)"
-            shadow="0 0 0 0.5px rgba(100,150,255,0.09)"
-          />
-          <StatPill
-            Icon={CheckCircle}
-            value={stats?.approved}
-            label="aprov."
-            color="#34D399"
-            bg="rgba(16,185,129,0.08)"
-            shadow="0 0 0 0.5px rgba(16,185,129,0.20)"
-          />
-          <StatPill
-            Icon={AlertTriangle}
-            value={stats?.suspicious}
-            label="susp."
-            color="#FCD34D"
-            bg="rgba(245,158,11,0.08)"
-            shadow="0 0 0 0.5px rgba(245,158,11,0.20)"
-          />
-          <StatPill
-            Icon={Clock}
-            value={stats?.pending}
-            label="pend."
-            color="#7A8DB5"
-            bg="rgba(75,94,138,0.08)"
-            shadow="0 0 0 0.5px rgba(75,94,138,0.20)"
-          />
-          <StatPill
-            Icon={XCircle}
-            value={stats?.rejected}
-            label="rejeit."
-            color="#F87171"
-            bg="rgba(239,68,68,0.08)"
-            shadow="0 0 0 0.5px rgba(239,68,68,0.20)"
-          />
-        </div>
+        {/* Stats strip — only on receipts tab */}
+        {tab === 'receipts' && (
+          <div
+            className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            <StatPill
+              Icon={FileStack}
+              value={stats?.total}
+              label="total"
+              color="#7A8DB5"
+              bg="rgba(100,150,255,0.05)"
+              shadow="0 0 0 0.5px rgba(100,150,255,0.09)"
+            />
+            <StatPill
+              Icon={CheckCircle}
+              value={stats?.approved}
+              label="aprov."
+              color="#34D399"
+              bg="rgba(16,185,129,0.08)"
+              shadow="0 0 0 0.5px rgba(16,185,129,0.20)"
+            />
+            <StatPill
+              Icon={AlertTriangle}
+              value={stats?.suspicious}
+              label="susp."
+              color="#FCD34D"
+              bg="rgba(245,158,11,0.08)"
+              shadow="0 0 0 0.5px rgba(245,158,11,0.20)"
+            />
+            <StatPill
+              Icon={Clock}
+              value={stats?.pending}
+              label="pend."
+              color="#7A8DB5"
+              bg="rgba(75,94,138,0.08)"
+              shadow="0 0 0 0.5px rgba(75,94,138,0.20)"
+            />
+            <StatPill
+              Icon={XCircle}
+              value={stats?.rejected}
+              label="rejeit."
+              color="#F87171"
+              bg="rgba(239,68,68,0.08)"
+              shadow="0 0 0 0.5px rgba(239,68,68,0.20)"
+            />
+          </div>
+        )}
 
         {/* Desktop tab bar */}
         <div
@@ -202,7 +208,7 @@ export default function App() {
                          border-b-2 transition-all duration-150"
               style={{
                 borderColor: tab === id ? '#10B981' : 'transparent',
-                color:        tab === id ? '#10B981' : '#3D4E72',
+                color:       tab === id ? '#10B981' : '#3D4E72',
               }}
             >
               <Icon size={14} />
@@ -226,15 +232,17 @@ export default function App() {
 
       {/* ── Content ────────────────────────────────────── */}
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-5 pb-24 md:pb-8 animate-fade-in">
-        {tab === 'receipts' && (
+        {tab === 'receipts'  && (
           <ReceiptFeed
             globalDate={dateCtx}
             onDateChange={setDateCtx}
             onRefreshStats={refresh}
           />
         )}
-        {tab === 'clients' && <ClientList />}
-        {tab === 'reports' && <ReportChat />}
+        {tab === 'clients'   && <ClientList />}
+        {tab === 'reports'   && <ReportDashboard />}
+        {tab === 'calote'    && <CalotePage />}
+        {tab === 'settings'  && <SettingsPage />}
       </main>
 
       {/* ── Mobile bottom nav ──────────────────────────── */}
@@ -254,7 +262,7 @@ export default function App() {
               className={tab === id ? 'nav-item-active' : 'nav-item'}
             >
               <div className="relative">
-                <Icon size={22} />
+                <Icon size={20} />
                 {id === 'receipts' && (stats?.pending ?? 0) > 0 && (
                   <span
                     className="absolute -top-1 -right-2 min-w-4 h-4 flex items-center justify-center
@@ -268,7 +276,7 @@ export default function App() {
                   </span>
                 )}
               </div>
-              {label}
+              <span className="text-[9px]">{label}</span>
             </button>
           ))}
         </div>

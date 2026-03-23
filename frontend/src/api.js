@@ -74,13 +74,38 @@ export const api = {
   updateClientName: (id, name) =>
     req(`/clients/${id}/name?name=${encodeURIComponent(name)}`, { method: 'PATCH' }),
 
+  // ── Calote ────────────────────────────────────────────────────────────────
+  getCaloteClients: ({ limit = 20, offset = 0 } = {}) => {
+    const qs = buildParams({ limit, offset })
+    return req(`/clients/calote?${qs}`)
+  },
+
+  removeCalote: (id) =>
+    req(`/clients/${id}/remove-calote`, { method: 'PATCH' }),
+
+  // ── Bulk ──────────────────────────────────────────────────────────────────
   bulkAction: (ids, action) =>
     req('/receipts/bulk', { method: 'POST', body: JSON.stringify({ ids, action }) }),
 
   // ── Reports ────────────────────────────────────────────────────────────────
+  getReportSummary: (period = 'today') =>
+    req(`/reports/summary?period=${period}`),
+
   requestReport: (message) =>
     req('/reports/request', { method: 'POST', body: JSON.stringify({ message }) }),
 
   sendNow: () =>
     req('/reports/send-now', { method: 'POST' }),
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  getSettings: () => req('/settings'),
+
+  saveSettings: (data) =>
+    req('/settings', { method: 'PUT', body: JSON.stringify(data) }),
+
+  testZapi: () =>
+    req('/settings/test-zapi', { method: 'POST' }),
+
+  testOpenAI: () =>
+    req('/settings/test-openai', { method: 'POST' }),
 }

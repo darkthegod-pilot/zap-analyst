@@ -9,8 +9,8 @@ import os
 
 from app.core.config import get_settings
 from app.models.database import create_tables, SessionLocal
-from app.models import client, receipt, daily_payment  # noqa: F401 – register models
-from app.api import webhook, receipts, clients, reports
+from app.models import client, receipt, daily_payment, system_settings  # noqa: F401 – register models
+from app.api import webhook, receipts, clients, reports, settings as settings_api
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -51,6 +51,7 @@ app.include_router(webhook.router)
 app.include_router(receipts.router, prefix="/api")
 app.include_router(clients.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(settings_api.router, prefix="/api")
 
 # Serve uploaded images
 os.makedirs(settings.upload_dir, exist_ok=True)
