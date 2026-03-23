@@ -4,6 +4,13 @@ import StatusBadge from './StatusBadge'
 import ImagePreviewModal from './ImagePreviewModal'
 import ReceiptDetailModal from './ReceiptDetailModal'
 
+const TRUSTED_NAMES = ['weslley', 'gabriel', 'washington', 'francisco', 'lucas']
+function isTrustedRecipient(name) {
+  if (!name) return true  // sem nome = sem alerta
+  const lower = name.toLowerCase()
+  return TRUSTED_NAMES.some(n => lower.includes(n))
+}
+
 /* ─────────────────────────────────────────────────
    SIGNATURE ELEMENT: Confidence Arc
 ──────────────────────────────────────────────── */
@@ -144,6 +151,12 @@ export default function ReceiptCard({ receipt, onRefresh, selected, onToggle, bu
               {receipt.is_duplicate && (
                 <span className="badge" style={{ background: 'rgba(239,68,68,0.10)', color: '#F87171', boxShadow: '0 0 0 0.5px rgba(239,68,68,0.22)' }}>
                   DUP
+                </span>
+              )}
+              {a?.recipient_name && !isTrustedRecipient(a.recipient_name) && (
+                <span className="badge" style={{ background: 'rgba(251,146,60,0.13)', color: '#FB923C', boxShadow: '0 0 0 0.5px rgba(251,146,60,0.30)' }}
+                  title={`Destinatário: ${a.recipient_name}`}>
+                  ⚠ DEST
                 </span>
               )}
             </div>

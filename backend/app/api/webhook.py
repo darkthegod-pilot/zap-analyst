@@ -61,8 +61,8 @@ async def zapi_webhook(
 
     # --- Admin sends outgoing image → auto-register recipient if not yet saved ---
     if is_from_me and phone:
-        image_url = _extract_image_url(body)
-        if image_url:
+        media = _extract_media_url(body)
+        if media:
             existing = db.query(Client).filter(Client.phone == phone).first()
             if not existing:
                 _register_client(phone, db)
@@ -76,11 +76,11 @@ async def zapi_webhook(
             Client.frozen == False,
         ).first()
         if client:
-            image_url = _extract_image_url(body)
-            if image_url:
+            media = _extract_media_url(body)
+            if media:
                 receipt = Receipt(
                     client_id=client.id,
-                    image_url=image_url,
+                    image_url=media["url"],
                     received_at=datetime.utcnow(),
                     status=ReceiptStatus.pending,
                 )
@@ -88,8 +88,15 @@ async def zapi_webhook(
                 db.commit()
                 db.refresh(receipt)
 
-                background_tasks.add_task(_save_and_analyze, receipt.id, image_url)
-                logger.info(f"New receipt #{receipt.id} from client {phone}")
+                if media["type"] == "pdf":
+                    # PDF: save for manual review, no AI
+                    receipt.notes = "PDF recebido — revisão manual necessária"
+                    db.commit()
+                    logger.info(f"New PDF receipt #{receipt.id} from client {phone} — manual review")
+                else:
+                    # Image: run AI analysis
+                    background_tasks.add_task(_save_and_analyze, receipt.id, media["url"])
+                    logger.info(f"New receipt #{receipt.id} from client {phone}")
 
     return {"ok": True}
 
@@ -179,19 +186,31 @@ def _extract_phone(body: dict) -> str | None:
     return None
 
 
-def _extract_image_url(body: dict) -> str | None:
-    """Extract image URL from ZAPI message payload."""
-    # image type (ZAPI v2)
+def _extract_media_url(body: dict) -> dict | None:
+    """Extract media URL from ZAPI message payload.
+
+    Returns {"url": str, "type": "image"|"pdf"} or None.
+    Only images and PDFs are accepted; audio/video/text are ignored.
+    """
+    # Image message (ZAPI v2)
     img = body.get("image", {}) or {}
-    if isinstance(img, dict):
+    if isinstance(img, dict) and img:
         url = img.get("imageUrl") or img.get("url")
         if url:
-            return url
+            return {"url": url, "type": "image"}
 
-    # document / media generic
-    for key in ("imageUrl", "mediaUrl", "url"):
+    # Document message — accept PDF only
+    doc = body.get("document", {}) or {}
+    if isinstance(doc, dict) and doc:
+        mime = doc.get("mimeType", "") or ""
+        url = doc.get("documentUrl") or doc.get("url") or doc.get("mediaUrl")
+        if url and "pdf" in mime.lower():
+            return {"url": url, "type": "pdf"}
+
+    # Fallback: top-level imageUrl/mediaUrl (some ZAPI versions)
+    for key in ("imageUrl", "mediaUrl"):
         val = body.get(key)
         if val and isinstance(val, str):
-            return val
+            return {"url": val, "type": "image"}
 
     return None

@@ -404,6 +404,49 @@ dc_cmd ps 2>/dev/null | while IFS= read -r line; do
   echo "  $line"
 done
 
+# ─── 13b. Auto-update systemd timer ─────────────────────────
+step "Configurando atualização automática"
+
+AUTOUPDATE_SH="$PROJECT_DIR/auto-update.sh"
+chmod +x "$AUTOUPDATE_SH" 2>/dev/null || true
+
+# Detectar branch atual
+GIT_BRANCH=$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+
+cat > /etc/systemd/system/darkcred-update.service << SVCFILE
+[Unit]
+Description=DarkCred ZAP Analyst — Auto Update
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash ${AUTOUPDATE_SH}
+Environment=UPDATE_BRANCH=${GIT_BRANCH}
+WorkingDirectory=${PROJECT_DIR}
+StandardOutput=journal
+StandardError=journal
+SVCFILE
+
+cat > /etc/systemd/system/darkcred-update.timer << TIMERFILE
+[Unit]
+Description=DarkCred ZAP Analyst — Auto Update (a cada 5 min)
+After=network-online.target
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+TIMERFILE
+
+systemctl daemon-reload
+systemctl enable --now darkcred-update.timer 2>/dev/null && \
+  ok "Auto-update ativado (verifica a cada 5 min — branch: $GIT_BRANCH)" || \
+  warn "Não foi possível ativar o timer systemd (systemd não disponível?)"
+
 # ─── 14. Resumo final ────────────────────────────────────────
 echo ""
 echo ""
@@ -429,10 +472,11 @@ echo -e "  ${YELLOW}  2.${RESET} Configure o webhook no painel da ZAPI com a URL
 echo -e "  ${YELLOW}  3.${RESET} Teste enviando uma imagem no WhatsApp monitorado"
 echo ""
 echo -e "  ${BOLD}Comandos úteis:${RESET}"
-echo -e "  ${CYAN}  Logs:    ${RESET}cd ${PROJECT_DIR} && docker compose logs -f"
-echo -e "  ${CYAN}  Restart: ${RESET}cd ${PROJECT_DIR} && docker compose restart"
-echo -e "  ${CYAN}  Parar:   ${RESET}cd ${PROJECT_DIR} && docker compose down"
-echo -e "  ${CYAN}  Update:  ${RESET}cd ${PROJECT_DIR} && git pull && docker compose up -d --build"
+echo -e "  ${CYAN}  Logs:        ${RESET}cd ${PROJECT_DIR} && docker compose logs -f"
+echo -e "  ${CYAN}  Restart:     ${RESET}cd ${PROJECT_DIR} && docker compose restart"
+echo -e "  ${CYAN}  Parar:       ${RESET}cd ${PROJECT_DIR} && docker compose down"
+echo -e "  ${CYAN}  Update now:  ${RESET}bash ${PROJECT_DIR}/auto-update.sh"
+echo -e "  ${CYAN}  Auto-update: ${RESET}systemctl status darkcred-update.timer"
 echo ""
 echo -e "  ${BOLD}Arquivo de configuração:${RESET} ${PROJECT_DIR}/.env"
 echo ""

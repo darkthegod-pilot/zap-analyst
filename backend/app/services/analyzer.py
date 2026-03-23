@@ -16,6 +16,9 @@ BRT = pytz.timezone("America/Sao_Paulo")
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+# Nomes confiáveis do dono do sistema (verificação case-insensitive por substring)
+TRUSTED_RECIPIENTS = {"weslley", "gabriel", "washington", "francisco", "lucas"}
+
 ANALYSIS_PROMPT = """Você é um especialista em detecção de fraudes em comprovantes bancários brasileiros.
 Analise CUIDADOSAMENTE este comprovante e retorne APENAS um JSON válido (sem markdown, sem explicações extras) com exatamente estes campos:
 
@@ -166,6 +169,33 @@ async def analyze_receipt(receipt_id: int, db: Session) -> None:
             result["fraud_indicators"] = indicators
             result["confidence_score"] = min(
                 float(result.get("confidence_score", 0.0)), 0.40
+            )
+
+        # ── Validação de destinatário: apenas recebedores confiáveis ─────
+        recipient = result.get("recipient_name") or ""
+        recipient_lower = recipient.lower()
+        is_trusted = any(name in recipient_lower for name in TRUSTED_RECIPIENTS)
+        if recipient and not is_trusted:
+            indicators = result.get("fraud_indicators") or []
+            if isinstance(indicators, list):
+                indicators = list(indicators)
+            else:
+                indicators = []
+            indicators.append(
+                f"Destinatário não confiável: '{recipient}' — verifique para onde foi o pagamento"
+            )
+            result["fraud_indicators"] = indicators
+            result["is_authentic"] = False
+            result["confidence_score"] = min(
+                float(result.get("confidence_score", 0.0)), 0.20
+            )
+            if not result.get("summary", "").startswith("REJEITADO"):
+                result["summary"] = (
+                    f"REJEITADO: Beneficiário '{recipient}' não está na lista de recebedores confiáveis. "
+                    f"Verifique para onde foi o pagamento."
+                )
+            logger.warning(
+                f"Receipt {receipt_id} rejected: untrusted recipient '{recipient}'"
             )
 
         analysis.is_authentic = result.get("is_authentic", False)

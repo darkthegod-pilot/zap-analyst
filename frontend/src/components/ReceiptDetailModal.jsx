@@ -9,6 +9,13 @@ import StatusBadge from './StatusBadge'
 import ImagePreviewModal from './ImagePreviewModal'
 import { api } from '../api'
 
+const TRUSTED_NAMES = ['weslley', 'gabriel', 'washington', 'francisco', 'lucas']
+function isTrustedRecipient(name) {
+  if (!name) return true
+  const lower = name.toLowerCase()
+  return TRUSTED_NAMES.some(n => lower.includes(n))
+}
+
 /* ── Confidence Arc (same signature element) ──── */
 function ConfidenceArc({ score }) {
   const pct    = Math.round((score ?? 0) * 100)
@@ -288,8 +295,39 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                   <DataRow Icon={CalendarDays} label="Data"          value={a.transaction_date} mono />
                   <DataRow Icon={Hash}         label="ID Transação"  value={a.transaction_id}   mono />
                   <DataRow Icon={ArrowUp}      label="Pagador"       value={a.sender_name}      />
-                  <DataRow Icon={ArrowDown}    label="Beneficiário"  value={a.recipient_name}   />
+                  {a.recipient_name ? (
+                    <div className="flex items-start gap-2 min-w-0">
+                      <ArrowDown size={12} className="mt-[3px] shrink-0" style={{ color: isTrustedRecipient(a.recipient_name) ? undefined : '#FB923C' }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="label">Beneficiário</p>
+                        <p className="text-[12px] font-medium mt-0.5 break-all leading-snug"
+                          style={{ color: isTrustedRecipient(a.recipient_name) ? undefined : '#FB923C' }}>
+                          {a.recipient_name}
+                          {!isTrustedRecipient(a.recipient_name) && (
+                            <span className="ml-1.5 text-[10px]" style={{ color: '#FB923C' }}>⚠ não confiável</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <DataRow Icon={ArrowDown} label="Beneficiário" value={a.recipient_name} />
+                  )}
                 </div>
+                {a.recipient_name && !isTrustedRecipient(a.recipient_name) && (
+                  <div className="rounded-[8px] p-3 flex items-start gap-2 mt-2"
+                    style={{ background: 'rgba(251,146,60,0.08)', boxShadow: '0 0 0 0.5px rgba(251,146,60,0.25)' }}>
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: '#FB923C' }} />
+                    <div>
+                      <p className="text-[12px] font-semibold" style={{ color: '#FB923C' }}>
+                        Destinatário não reconhecido
+                      </p>
+                      <p className="text-[11px] text-ink3 mt-0.5">
+                        O pagamento foi para <span className="font-semibold text-ink2">{a.recipient_name}</span>, que não está
+                        na lista de recebedores confiáveis. Verifique e rejeite se necessário.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </Section>
             )}
 
