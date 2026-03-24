@@ -25,8 +25,8 @@ function ConfidenceArc({ score }) {
   const gap    = circ * 0.22
   const arc    = circ - gap
   const fill   = (pct / 100) * arc
-  const color  = pct >= 85 ? '#10B981' : pct >= 55 ? '#F59E0B' : '#EF4444'
-  const glow   = pct >= 85 ? 'rgba(16,185,129,0.55)' : pct >= 55 ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)'
+  const color  = pct >= 85 ? 'var(--brand)' : pct >= 55 ? '#F59E0B' : '#EF4444'
+  const glow   = pct >= 85 ? 'rgba(var(--brand-rgb),0.55)' : pct >= 55 ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)'
   const size   = (radius + stroke) * 2 + 2
   const rotate = 90 + (360 * 0.11)
 
@@ -34,7 +34,7 @@ function ConfidenceArc({ score }) {
     <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: `rotate(${rotate}deg)` }}>
         <circle cx={size/2} cy={size/2} r={radius} fill="none"
-          stroke="rgba(100,150,255,0.07)" strokeWidth={stroke}
+          stroke="rgba(var(--accent-rgb),0.07)" strokeWidth={stroke}
           strokeDasharray={`${arc} ${circ - arc}`} strokeLinecap="round" />
         <circle cx={size/2} cy={size/2} r={radius} fill="none"
           stroke={color} strokeWidth={stroke}
@@ -60,19 +60,19 @@ function buildDecision(receipt) {
       color: '#EF4444',
     }
   }
-  if (!a) return { icon: '⏳', title: 'Análise em andamento', body: 'A IA está processando este comprovante…', color: '#7A8DB5' }
+  if (!a) return { icon: '⏳', title: 'Análise em andamento', body: 'A IA está processando este comprovante…', color: 'var(--ink2)' }
 
   const pct = Math.round((a.confidence_score ?? 0) * 100)
 
   if (receipt.status === 'approved' && receipt.auto_processed)
-    return { icon: '✅', title: `Auto-aprovado — ${pct}% de confiança`, body: a.ai_summary || '', color: '#10B981' }
+    return { icon: '✅', title: `Auto-aprovado — ${pct}% de confiança`, body: a.ai_summary || '', color: 'var(--brand)' }
   if (receipt.status === 'approved')
-    return { icon: '✅', title: 'Aprovado manualmente', body: a.ai_summary || 'Aprovado pelo administrador.', color: '#10B981' }
+    return { icon: '✅', title: 'Aprovado manualmente', body: a.ai_summary || 'Aprovado pelo administrador.', color: 'var(--brand)' }
   if (receipt.status === 'rejected')
     return { icon: '❌', title: 'Rejeitado', body: receipt.notes || a.ai_summary || '', color: '#EF4444' }
   if (receipt.status === 'suspicious')
     return { icon: '⚠️', title: `Suspeito — ${pct}% de confiança (< 85%)`, body: a.ai_summary || '', color: '#F59E0B' }
-  return { icon: '⏳', title: 'Pendente', body: a.ai_summary || '', color: '#7A8DB5' }
+  return { icon: '⏳', title: 'Pendente', body: a.ai_summary || '', color: 'var(--ink2)' }
 }
 
 /* ── Data row ────────────────────────────────────── */
@@ -175,15 +175,15 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
         <div
           className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[16px] sm:rounded-[16px]"
           style={{
-            background: '#0D1525',
-            boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10), 0 -8px 40px rgba(0,0,0,0.6)',
+            background: 'var(--panel)',
+            boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.10), 0 -8px 40px rgba(0,0,0,0.6)',
           }}
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
           <div
             className="flex items-center justify-between p-4 sticky top-0 z-10"
-            style={{ background: '#0D1525', borderBottom: '0.5px solid rgba(100,150,255,0.07)' }}
+            style={{ background: 'var(--panel)', borderBottom: '0.5px solid rgba(var(--accent-rgb),0.07)' }}
           >
             <div className="flex items-center gap-2">
               <StatusBadge status={receipt.status} />
@@ -230,7 +230,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                   </button>
                 ) : (
                   <div className="rounded-[10px] flex items-center justify-center"
-                    style={{ width: 80, height: 80, background: 'rgba(100,150,255,0.05)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.09)' }}>
+                    style={{ width: 80, height: 80, background: 'rgba(var(--accent-rgb),0.05)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.09)' }}>
                     <ImageOff size={22} className="text-ink3" />
                   </div>
                 )}
@@ -242,7 +242,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                   {a?.bank_name || receipt.client?.name || receipt.client?.phone || `Cliente #${receipt.client_id}`}
                 </p>
                 {a?.amount && (
-                  <p className="font-mono font-black text-[18px] tabular lining" style={{ color: '#34D399' }}>
+                  <p className="font-mono font-black text-[18px] tabular lining" style={{ color: 'var(--brand-hi)' }}>
                     {a.amount}
                   </p>
                 )}
@@ -259,7 +259,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                 <iframe
                   src={`/api/receipts/${receipt.id}/file`}
                   className="w-full rounded-[10px] border"
-                  style={{ height: 320, borderColor: 'rgba(100,150,255,0.12)' }}
+                  style={{ height: 320, borderColor: 'rgba(var(--accent-rgb),0.12)' }}
                   title="Comprovante PDF"
                 />
               </Section>
@@ -270,7 +270,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
               <div
                 className="rounded-[10px] p-3 flex items-start gap-3"
                 style={{
-                  background: `rgba(${decision.color === '#10B981' ? '16,185,129' : decision.color === '#EF4444' ? '239,68,68' : decision.color === '#F59E0B' ? '245,158,11' : '75,94,138'},0.07)`,
+                  background: `rgba(${decision.color === 'var(--brand)' ? '16,185,129' : decision.color === '#EF4444' ? '239,68,68' : decision.color === '#F59E0B' ? '245,158,11' : '75,94,138'},0.07)`,
                   boxShadow: `0 0 0 0.5px ${decision.color}33`,
                 }}
               >
@@ -315,7 +315,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
             {a && (a.bank_name || a.amount || a.transaction_date || a.transaction_id || a.sender_name || a.recipient_name) && (
               <Section title="📋 Dados Extraídos">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3"
-                  style={{ background: 'rgba(100,150,255,0.03)', borderRadius: 8, padding: 12, boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+                  style={{ background: 'rgba(var(--accent-rgb),0.03)', borderRadius: 8, padding: 12, boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
                   <DataRow Icon={Building2}    label="Banco"         value={a.bank_name}        />
                   <DataRow Icon={DollarSign}   label="Valor"         value={a.amount}           mono />
                   <DataRow Icon={CalendarDays} label="Data"          value={a.transaction_date} mono />
@@ -360,7 +360,7 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
             {/* Security section */}
             <Section title="🔒 Segurança">
               <div className="rounded-[10px] p-3 space-y-2"
-                style={{ background: 'rgba(100,150,255,0.03)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+                style={{ background: 'rgba(var(--accent-rgb),0.03)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
                 {receipt.image_hash ? (
                   <div className="flex items-center gap-2">
                     <Shield size={12} className="text-ink3 shrink-0" />
@@ -375,9 +375,9 @@ export default function ReceiptDetailModal({ receipt, onClose, onRefresh }) {
                 ) : (
                   <p className="text-[12px] text-ink3">Hash não disponível — imagem não processada localmente.</p>
                 )}
-                <div className="flex items-center gap-2 pt-1" style={{ borderTop: '0.5px solid rgba(100,150,255,0.07)' }}>
+                <div className="flex items-center gap-2 pt-1" style={{ borderTop: '0.5px solid rgba(var(--accent-rgb),0.07)' }}>
                   <span className="label flex-1">Comprovante duplicado</span>
-                  <span className="text-[12px] font-semibold" style={{ color: receipt.is_duplicate ? '#EF4444' : '#10B981' }}>
+                  <span className="text-[12px] font-semibold" style={{ color: receipt.is_duplicate ? '#EF4444' : 'var(--brand)' }}>
                     {receipt.is_duplicate ? '⚠️ Sim' : '✓ Não'}
                   </span>
                 </div>

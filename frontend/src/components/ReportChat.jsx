@@ -71,8 +71,8 @@ export default function ReportChat() {
       <div
         className="rounded-[10px] p-4 flex items-center justify-between gap-4"
         style={{
-          background: '#0D1525',
-          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+          background: 'var(--panel)',
+          boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
         }}
       >
         <div>
@@ -97,8 +97,8 @@ export default function ReportChat() {
       <div
         className="rounded-[10px] p-4 space-y-3"
         style={{
-          background: '#0D1525',
-          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+          background: 'var(--panel)',
+          boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
         }}
       >
         <p className="section-title flex items-center gap-1.5">
@@ -116,8 +116,8 @@ export default function ReportChat() {
       <div
         className="rounded-[10px] p-4 space-y-4"
         style={{
-          background: '#0D1525',
-          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+          background: 'var(--panel)',
+          boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
         }}
       >
         <p className="section-title flex items-center gap-1.5">
@@ -163,8 +163,8 @@ export default function ReportChat() {
         <div
           className="rounded-[10px] p-4 space-y-3 animate-slide-up"
           style={{
-            background: '#0D1525',
-            boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(16,185,129,0.06)',
+            background: 'var(--panel)',
+            boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.22), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(var(--brand-rgb),0.06)',
           }}
         >
           {/* Header */}
@@ -176,9 +176,9 @@ export default function ReportChat() {
                 <span
                   className="badge"
                   style={{
-                    background: 'rgba(16,185,129,0.10)',
-                    color: '#34D399',
-                    boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)',
+                    background: 'rgba(var(--brand-rgb),0.10)',
+                    color: 'var(--brand-hi)',
+                    boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.22)',
                   }}
                 >
                   <Check size={9} /> Enviado no WhatsApp
@@ -194,7 +194,7 @@ export default function ReportChat() {
           {/* Body */}
           <div
             className="rounded-[8px] p-3"
-            style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+            style={{ background: 'rgba(var(--accent-rgb),0.04)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
           >
             <pre className="text-[12px] text-ink2 whitespace-pre-wrap font-sans leading-relaxed">
               {result.report}

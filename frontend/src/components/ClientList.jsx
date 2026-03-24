@@ -166,8 +166,8 @@ export default function ClientList() {
       <div
         className="rounded-[8px] p-3 flex items-start gap-2.5 text-[12px]"
         style={{
-          background: 'rgba(16,185,129,0.05)',
-          boxShadow: '0 0 0 0.5px rgba(16,185,129,0.15)',
+          background: 'rgba(var(--brand-rgb),0.05)',
+          boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.15)',
         }}
       >
         <MessageCircle size={13} className="text-brand mt-[1px] shrink-0" />
@@ -175,7 +175,7 @@ export default function ClientList() {
           Envie{' '}
           <code
             className="font-mono px-1 py-0.5 rounded text-[11px]"
-            style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399' }}
+            style={{ background: 'rgba(var(--brand-rgb),0.12)', color: 'var(--brand-hi)' }}
           >
             Comprovante salvo.
           </code>{' '}
@@ -212,10 +212,10 @@ export default function ClientList() {
                   key={c.id}
                   className="rounded-[10px] p-3 flex items-center gap-3 transition-colors duration-150 cursor-pointer active:opacity-80"
                   style={{
-                    background: '#0D1525',
+                    background: 'var(--panel)',
                     boxShadow: isFrozen
                       ? '0 0 0 0.5px rgba(75,94,138,0.25), 0 2px 6px rgba(0,0,0,0.4)'
-                      : '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+                      : '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
                     opacity: isFrozen ? 0.65 : 1,
                   }}
                   onClick={() => setDetailClient(c)}
@@ -264,20 +264,20 @@ export default function ClientList() {
                       )}
                       {/* Status badge */}
                       {isFrozen ? (
-                        <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#4B5E8A' }}>
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#4B5E8A' }} />
+                        <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: 'var(--idle)' }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--idle)' }} />
                           Congelado
                         </span>
                       ) : (
                         <span
                           className="text-[10px] font-semibold flex items-center gap-1"
-                          style={{ color: c.active ? '#34D399' : '#3D4E72' }}
+                          style={{ color: c.active ? 'var(--brand-hi)' : 'var(--ink3)' }}
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full"
                             style={{
-                              background: c.active ? '#10B981' : '#3D4E72',
-                              boxShadow: c.active ? '0 0 5px rgba(16,185,129,0.6)' : 'none',
+                              background: c.active ? 'var(--brand)' : 'var(--ink3)',
+                              boxShadow: c.active ? '0 0 5px rgba(var(--brand-rgb),0.6)' : 'none',
                             }}
                           />
                           {c.active ? 'Ativo' : 'Inativo'}
@@ -301,7 +301,7 @@ export default function ClientList() {
                       <p
                         className="font-mono font-black text-[14px] tabular lining"
                         style={{
-                          color: (c.score ?? 1000) >= 800 ? '#10B981'
+                          color: (c.score ?? 1000) >= 800 ? 'var(--brand)'
                                : (c.score ?? 1000) >= 500 ? '#F59E0B'
                                : '#EF4444'
                         }}

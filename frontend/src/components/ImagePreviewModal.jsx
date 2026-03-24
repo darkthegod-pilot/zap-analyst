@@ -27,7 +27,7 @@ export default function ImagePreviewModal({ url, onClose }) {
           href={url}
           download
           className="btn-ghost btn-sm"
-          style={{ color: '#7A8DB5' }}
+          style={{ color: 'var(--ink2)' }}
         >
           <Download size={14} />
           Baixar
@@ -35,7 +35,7 @@ export default function ImagePreviewModal({ url, onClose }) {
         <button
           onClick={onClose}
           className="btn-ghost btn-sm"
-          style={{ color: '#7A8DB5' }}
+          style={{ color: 'var(--ink2)' }}
         >
           <X size={14} />
           Fechar
@@ -68,7 +68,7 @@ export default function ImagePreviewModal({ url, onClose }) {
               maxHeight: '88vh',
               objectFit: 'contain',
               borderRadius: 10,
-              boxShadow: '0 0 0 0.5px rgba(100,150,255,0.12), 0 8px 40px rgba(0,0,0,0.6)',
+              boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.12), 0 8px 40px rgba(0,0,0,0.6)',
             }}
           />
         )}

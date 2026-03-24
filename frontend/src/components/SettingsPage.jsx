@@ -1,10 +1,93 @@
 import { useState, useEffect } from 'react'
 import {
   Loader2, CheckCircle, XCircle, Copy, Check,
-  Wifi, KeyRound, Settings2, Info, Eye, EyeOff, ExternalLink,
+  Wifi, KeyRound, Settings2, Info, Eye, EyeOff, Palette,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '../api'
+
+/* ── Theme Picker ────────────────────────────────── */
+const THEME_OPTIONS = [
+  {
+    id:     'default',
+    label:  'Emerald Dark',
+    desc:   'Verde esmeralda (padrão)',
+    swatch: ['var(--canvas)', 'var(--panel)', 'var(--brand)'],
+    font:   'Inter',
+  },
+  {
+    id:     'purple',
+    label:  'Purple Dark',
+    desc:   'Violeta — moderno',
+    swatch: ['#0C0817', '#15102A', '#8B5CF6'],
+    font:   'Outfit',
+  },
+  {
+    id:     'corporate',
+    label:  'Corporate',
+    desc:   'Azul — profissional',
+    swatch: ['#0A0D14', '#111827', '#2563EB'],
+    font:   'IBM Plex Sans',
+  },
+  {
+    id:     'cyber',
+    label:  'Blue Cyber',
+    desc:   'Cyan — cibernético',
+    swatch: ['#050B12', '#091525', '#06B6D4'],
+    font:   'Exo 2',
+  },
+]
+
+function ThemePicker({ theme, setTheme }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {THEME_OPTIONS.map(o => {
+        const active = theme === o.id
+        return (
+          <button
+            key={o.id}
+            onClick={() => setTheme(o.id)}
+            className="p-3 text-left transition-all duration-150 active:scale-[0.97]"
+            style={{
+              borderRadius: 'var(--radius-card)',
+              background: active ? `rgba(var(--brand-rgb),0.08)` : o.swatch[1],
+              boxShadow: active
+                ? `0 0 0 1.5px var(--brand), 0 2px 8px rgba(0,0,0,0.4)`
+                : `0 0 0 0.5px rgba(var(--accent-rgb),0.12)`,
+            }}
+          >
+            {/* Color swatches */}
+            <div className="flex gap-1 mb-2">
+              {o.swatch.map((c, i) => (
+                <span
+                  key={i}
+                  className="w-4 h-4 rounded-full"
+                  style={{
+                    background: c,
+                    boxShadow: i === 2 ? `0 0 5px ${c}88` : 'none',
+                  }}
+                />
+              ))}
+            </div>
+            <p
+              className="font-bold text-[13px] leading-tight"
+              style={{ color: active ? 'var(--brand)' : o.swatch[2] }}
+            >
+              {o.label}
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink3)' }}>{o.desc}</p>
+            <p
+              className="text-[10px] mt-1.5 opacity-60"
+              style={{ fontFamily: `'${o.font}', sans-serif` }}
+            >
+              {o.font}
+            </p>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 /* ── Field ──────────────────────────────────────── */
 function Field({ label, hint, children }) {
@@ -18,19 +101,19 @@ function Field({ label, hint, children }) {
 }
 
 /* ── Section ─────────────────────────────────────── */
-function Section({ title, icon: Icon, children, accent }) {
+function Section({ title, icon: Icon, children, accentColor }) {
   return (
     <div
       className="rounded-[12px] p-4 space-y-4"
       style={{
-        background: '#0D1525',
-        boxShadow: accent
-          ? `0 0 0 0.5px ${accent}33, 0 2px 6px rgba(0,0,0,0.4)`
-          : '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+        background: 'var(--panel)',
+        boxShadow: accentColor
+          ? `0 0 0 0.5px ${accentColor}33, 0 2px 6px rgba(0,0,0,0.4)`
+          : `0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)`,
       }}
     >
       <div className="flex items-center gap-2">
-        <Icon size={14} style={{ color: accent || '#7A8DB5' }} />
+        <Icon size={14} style={{ color: accentColor || 'var(--ink2)' }} />
         <p className="text-[13px] font-bold text-ink">{title}</p>
       </div>
       {children}
@@ -46,9 +129,9 @@ function TestBadge({ status }) {
     <div
       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
       style={{
-        background: ok ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)',
-        color:      ok ? '#34D399'                : '#F87171',
-        boxShadow:  ok ? '0 0 0 0.5px rgba(16,185,129,0.25)' : '0 0 0 0.5px rgba(239,68,68,0.25)',
+        background: ok ? 'rgba(var(--brand-rgb),0.10)' : 'rgba(239,68,68,0.10)',
+        color:      ok ? 'var(--brand-hi)'                : '#F87171',
+        boxShadow:  ok ? '0 0 0 0.5px rgba(var(--brand-rgb),0.25)' : '0 0 0 0.5px rgba(239,68,68,0.25)',
       }}
     >
       {ok ? <CheckCircle size={11} /> : <XCircle size={11} />}
@@ -57,12 +140,12 @@ function TestBadge({ status }) {
   )
 }
 
-export default function SettingsPage() {
+export default function SettingsPage({ theme, setTheme }) {
   const [loading,     setLoading]     = useState(true)
   const [saving,      setSaving]      = useState(false)
   const [testingZapi, setTestingZapi] = useState(false)
   const [testingAI,   setTestingAI]   = useState(false)
-  const [zapiStatus,  setZapiStatus]  = useState(null)   // null | 'ok' | 'error'
+  const [zapiStatus,  setZapiStatus]  = useState(null)
   const [aiStatus,    setAiStatus]    = useState(null)
   const [zapiDetail,  setZapiDetail]  = useState(null)
   const [aiDetail,    setAiDetail]    = useState(null)
@@ -181,13 +264,18 @@ export default function SettingsPage() {
 
       <h2 className="text-[15px] font-black text-ink">Configurações</h2>
 
-      {/* ── ZAPI ──────────────────────────────────────────────────────────── */}
-      <Section title="ZAPI — WhatsApp API" icon={Wifi} accent="#10B981">
+      {/* ── Aparência ─────────────────────────────────────────────────────────── */}
+      <Section title="Aparência" icon={Palette}>
+        <ThemePicker theme={theme} setTheme={setTheme} />
+      </Section>
 
-        {/* Webhook URL (read-only instruction) */}
+      {/* ── ZAPI ──────────────────────────────────────────────────────────── */}
+      <Section title="ZAPI — WhatsApp API" icon={Wifi} accentColor="var(--brand)">
+
+        {/* Webhook URL */}
         <div
           className="rounded-[8px] p-3 space-y-2"
-          style={{ background: 'rgba(16,185,129,0.05)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.18)' }}
+          style={{ background: 'rgba(var(--brand-rgb),0.05)', boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.18)' }}
         >
           <div className="flex items-start gap-2">
             <Info size={12} className="text-brand mt-0.5 shrink-0" />
@@ -199,7 +287,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2">
             <code
               className="flex-1 font-mono text-[11px] text-brand truncate px-2 py-1 rounded-[5px]"
-              style={{ background: 'rgba(16,185,129,0.08)' }}
+              style={{ background: 'rgba(var(--brand-rgb),0.08)' }}
             >
               {form.webhook_url || 'http://187.77.242.86/webhook/zapi'}
             </code>
@@ -265,7 +353,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* ── OpenAI ──────────────────────────────────────────────────────────── */}
-      <Section title="OpenAI — Análise com IA" icon={KeyRound} accent="#7C3AED">
+      <Section title="OpenAI — Análise com IA" icon={KeyRound} accentColor="#7C3AED">
 
         <Field label="API Key" hint="Chave secreta OpenAI — sk-...">
           <div className="relative">
@@ -345,12 +433,12 @@ export default function SettingsPage() {
               onChange={e => set('auto_approve_threshold', e.target.value)}
             />
             <div className="flex-1 space-y-1">
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(100,150,255,0.10)' }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(var(--accent-rgb),0.10)' }}>
                 <div
                   className="h-full rounded-full transition-all duration-300"
                   style={{
                     width: `${Math.min(100, (parseFloat(form.auto_approve_threshold) || 0) * 100)}%`,
-                    background: '#10B981',
+                    background: 'var(--brand)',
                   }}
                 />
               </div>
@@ -377,7 +465,10 @@ export default function SettingsPage() {
       {/* Score rules info */}
       <div
         className="rounded-[10px] p-3 space-y-2"
-        style={{ background: 'rgba(100,150,255,0.03)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+        style={{
+          background: 'rgba(var(--accent-rgb),0.03)',
+          boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)',
+        }}
       >
         <p className="section-title">Regras de Score</p>
         <div className="space-y-1 text-[11px] text-ink3">

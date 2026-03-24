@@ -24,30 +24,30 @@ function NavCard({ icon: Icon, title, subtitle, badge, badgeColor, onClick, acce
       onClick={onClick}
       className="flex flex-col gap-3 p-4 rounded-[12px] text-left transition-all duration-150 active:scale-[0.98] w-full"
       style={{
-        background: accent ? `rgba(${accent},0.06)` : '#0D1525',
+        background: accent ? `rgba(${accent},0.06)` : 'var(--panel)',
         boxShadow: accent
           ? `0 0 0 0.5px rgba(${accent},0.20)`
-          : '0 0 0 0.5px rgba(100,150,255,0.07)',
+          : '0 0 0 0.5px rgba(var(--accent-rgb),0.07)',
       }}
       onMouseEnter={e => {
         e.currentTarget.style.background = accent
           ? `rgba(${accent},0.10)`
-          : 'rgba(100,150,255,0.05)'
+          : 'rgba(var(--accent-rgb),0.05)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.background = accent
           ? `rgba(${accent},0.06)`
-          : '#0D1525'
+          : 'var(--panel)'
       }}
     >
       <div className="flex items-center justify-between">
-        <Icon size={18} style={{ color: accent ? `rgb(${accent})` : '#3D4E72' }} />
+        <Icon size={18} style={{ color: accent ? `rgb(${accent})` : 'var(--ink3)' }} />
         {badge != null && (
           <span
             className="text-[10px] font-black px-2 py-0.5 rounded-full"
             style={{
-              background: badgeColor ? `rgba(${badgeColor},0.15)` : 'rgba(100,150,255,0.10)',
-              color: badgeColor ? `rgb(${badgeColor})` : '#7A8DB5',
+              background: badgeColor ? `rgba(${badgeColor},0.15)` : 'rgba(var(--accent-rgb),0.10)',
+              color: badgeColor ? `rgb(${badgeColor})` : 'var(--ink2)',
               boxShadow: badgeColor ? `0 0 0 0.5px rgba(${badgeColor},0.25)` : 'none',
             }}
           >
@@ -61,7 +61,7 @@ function NavCard({ icon: Icon, title, subtitle, badge, badgeColor, onClick, acce
       </div>
       <div
         className="flex items-center gap-1 text-[11px] font-semibold"
-        style={{ color: accent ? `rgb(${accent})` : '#3D4E72' }}
+        style={{ color: accent ? `rgb(${accent})` : 'var(--ink3)' }}
       >
         <span>Acessar</span>
         <ArrowRight size={11} />
@@ -120,8 +120,8 @@ export default function DashboardPage({ stats, onNavigate }) {
         <div
           className="rounded-[14px] p-4 space-y-3"
           style={{
-            background: 'rgba(16,185,129,0.05)',
-            boxShadow: '0 0 0 0.5px rgba(16,185,129,0.20), 0 4px 20px rgba(0,0,0,0.3)',
+            background: 'rgba(var(--brand-rgb),0.05)',
+            boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.20), 0 4px 20px rgba(0,0,0,0.3)',
           }}
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink3">
@@ -136,7 +136,7 @@ export default function DashboardPage({ stats, onNavigate }) {
               </p>
               <p
                 className="font-mono font-black tabular lining leading-none"
-                style={{ fontSize: 'clamp(16px, 3vw, 24px)', color: '#34D399' }}
+                style={{ fontSize: 'clamp(16px, 3vw, 24px)', color: 'var(--brand-hi)' }}
               >
                 {BRL(data?.total_amount)}
               </p>
@@ -148,7 +148,7 @@ export default function DashboardPage({ stats, onNavigate }) {
               </p>
               <p
                 className="font-mono font-black tabular lining leading-none"
-                style={{ fontSize: 'clamp(16px, 3vw, 24px)', color: '#10B981' }}
+                style={{ fontSize: 'clamp(16px, 3vw, 24px)', color: 'var(--brand)' }}
               >
                 {BRL(data?.total_profit)}
               </p>
@@ -156,10 +156,10 @@ export default function DashboardPage({ stats, onNavigate }) {
           </div>
 
           {/* Meta row */}
-          <div className="flex gap-4 pt-1" style={{ borderTop: '0.5px solid rgba(16,185,129,0.15)' }}>
+          <div className="flex gap-4 pt-1" style={{ borderTop: '0.5px solid rgba(var(--brand-rgb),0.15)' }}>
             {data?.avg_amount > 0 && (
               <div className="flex items-center gap-1.5">
-                <DollarSign size={11} style={{ color: '#7A8DB5' }} />
+                <DollarSign size={11} style={{ color: 'var(--ink2)' }} />
                 <span className="text-[11px] text-ink3">
                   Ticket: <span className="font-mono font-semibold text-ink">{BRL(data.avg_amount)}</span>
                 </span>
@@ -167,9 +167,9 @@ export default function DashboardPage({ stats, onNavigate }) {
             )}
             {total > 0 && (
               <div className="flex items-center gap-1.5">
-                <TrendingUp size={11} style={{ color: '#7A8DB5' }} />
+                <TrendingUp size={11} style={{ color: 'var(--ink2)' }} />
                 <span className="text-[11px] text-ink3">
-                  Aprovação: <span className="font-mono font-semibold" style={{ color: approvalRate >= 70 ? '#34D399' : approvalRate >= 40 ? '#FCD34D' : '#F87171' }}>{approvalRate}%</span>
+                  Aprovação: <span className="font-mono font-semibold" style={{ color: approvalRate >= 70 ? 'var(--brand-hi)' : approvalRate >= 40 ? '#FCD34D' : '#F87171' }}>{approvalRate}%</span>
                 </span>
               </div>
             )}
@@ -253,9 +253,9 @@ export default function DashboardPage({ stats, onNavigate }) {
         className="w-full flex items-center justify-center gap-2.5 py-3 rounded-[12px]
                    text-[13px] font-semibold transition-all duration-150 active:scale-[0.98]"
         style={{
-          background: sending ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.08)',
-          boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)',
-          color: '#34D399',
+          background: sending ? 'rgba(var(--brand-rgb),0.06)' : 'rgba(var(--brand-rgb),0.08)',
+          boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.22)',
+          color: 'var(--brand-hi)',
         }}
       >
         {sending

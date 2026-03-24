@@ -17,15 +17,15 @@ function ScoreArc({ score }) {
   const gap    = circ * 0.22
   const arc    = circ - gap
   const fill   = (pct / 100) * arc
-  const color  = score >= 800 ? '#10B981' : score >= 500 ? '#F59E0B' : '#EF4444'
-  const glow   = score >= 800 ? 'rgba(16,185,129,0.5)' : score >= 500 ? 'rgba(245,158,11,0.5)' : 'rgba(239,68,68,0.5)'
+  const color  = score >= 800 ? 'var(--brand)' : score >= 500 ? '#F59E0B' : '#EF4444'
+  const glow   = score >= 800 ? 'rgba(var(--brand-rgb),0.5)' : score >= 500 ? 'rgba(245,158,11,0.5)' : 'rgba(239,68,68,0.5)'
   const size   = (radius + stroke) * 2 + 4
   const rotate = 90 + (360 * 0.11)
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: `rotate(${rotate}deg)` }}>
         <circle cx={size/2} cy={size/2} r={radius} fill="none"
-          stroke="rgba(100,150,255,0.07)" strokeWidth={stroke}
+          stroke="rgba(var(--accent-rgb),0.07)" strokeWidth={stroke}
           strokeDasharray={`${arc} ${circ - arc}`} strokeLinecap="round" />
         <circle cx={size/2} cy={size/2} r={radius} fill="none"
           stroke={color} strokeWidth={stroke}
@@ -42,8 +42,8 @@ function ScoreArc({ score }) {
 
 /* ─── Day cell ───────────────────────────────────── */
 const STATUS_COLORS = {
-  paid_early:   { bg: 'rgba(16,185,129,0.30)', glow: '0 0 8px rgba(16,185,129,0.6)', label: '⚡' },
-  paid_on_time: { bg: 'rgba(16,185,129,0.20)', glow: '0 0 6px rgba(16,185,129,0.5)', label: '✅' },
+  paid_early:   { bg: 'rgba(var(--brand-rgb),0.30)', glow: '0 0 8px rgba(var(--brand-rgb),0.6)', label: '⚡' },
+  paid_on_time: { bg: 'rgba(var(--brand-rgb),0.20)', glow: '0 0 6px rgba(var(--brand-rgb),0.5)', label: '✅' },
   paid_normal:  { bg: 'rgba(75,184,130,0.14)', glow: '0 0 4px rgba(75,184,130,0.3)', label: '🟡' },
   paid_late:    { bg: 'rgba(245,158,11,0.20)',  glow: '0 0 6px rgba(245,158,11,0.4)', label: '⏰' },
   missed:       { bg: 'rgba(239,68,68,0.20)',   glow: '0 0 4px rgba(239,68,68,0.3)',  label: '❌' },
@@ -94,9 +94,9 @@ function ScoreTooltip({ active, payload, label }) {
   const score = payload[0]?.value
   return (
     <div className="rounded-[6px] px-2 py-1.5 text-[11px]"
-      style={{ background: '#121D35', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.15)', color: '#E8EEF8' }}>
+      style={{ background: 'var(--raised)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.15)', color: 'var(--ink)' }}>
       <p className="text-ink3 mb-0.5">{label}</p>
-      <p className="font-mono font-bold" style={{ color: score >= 800 ? '#10B981' : score >= 500 ? '#F59E0B' : '#EF4444' }}>{score}</p>
+      <p className="font-mono font-bold" style={{ color: score >= 800 ? 'var(--brand)' : score >= 500 ? '#F59E0B' : '#EF4444' }}>{score}</p>
     </div>
   )
 }
@@ -108,10 +108,10 @@ const fmtBRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency
 function statusIcon(status, isDuplicate) {
   if (isDuplicate) return { icon: '🔁', color: '#F87171' }
   switch (status) {
-    case 'approved':   return { icon: '✅', color: '#34D399' }
+    case 'approved':   return { icon: '✅', color: 'var(--brand-hi)' }
     case 'rejected':   return { icon: '❌', color: '#F87171' }
     case 'suspicious': return { icon: '⚠️', color: '#FCD34D' }
-    default:           return { icon: '⏳', color: '#7A8DB5' }
+    default:           return { icon: '⏳', color: 'var(--ink2)' }
   }
 }
 
@@ -166,13 +166,13 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
   const missed = history.filter(d => d.status === 'missed').length
 
   const scoreLabel = score >= 800 ? 'Excelente' : score >= 600 ? 'Bom' : score >= 400 ? 'Regular' : 'Crítico'
-  const scoreColor = score >= 800 ? '#10B981' : score >= 600 ? '#34D399' : score >= 400 ? '#F59E0B' : '#EF4444'
+  const scoreColor = score >= 800 ? 'var(--brand)' : score >= 600 ? 'var(--brand-hi)' : score >= 400 ? '#F59E0B' : '#EF4444'
 
   /* Risk badge config */
   const riskCfg = score >= 800
-    ? { label: 'Baixo risco',  bg: 'rgba(16,185,129,0.12)', color: '#34D399', border: 'rgba(16,185,129,0.30)' }
+    ? { label: 'Baixo risco',  bg: 'rgba(var(--brand-rgb),0.12)', color: 'var(--brand-hi)', border: 'rgba(var(--brand-rgb),0.30)' }
     : score >= 600
-    ? { label: 'Risco médio',  bg: 'rgba(75,94,138,0.12)',  color: '#7A8DB5', border: 'rgba(75,94,138,0.30)'  }
+    ? { label: 'Risco médio',  bg: 'rgba(75,94,138,0.12)',  color: 'var(--ink2)', border: 'rgba(75,94,138,0.30)'  }
     : score >= 400
     ? { label: 'Risco alto',   bg: 'rgba(245,158,11,0.12)', color: '#FCD34D', border: 'rgba(245,158,11,0.30)' }
     : { label: 'Risco crítico',bg: 'rgba(239,68,68,0.12)',  color: '#F87171', border: 'rgba(239,68,68,0.30)'  }
@@ -185,12 +185,12 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
     >
       <div
         className="w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-[16px] sm:rounded-[16px]"
-        style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10), 0 -8px 40px rgba(0,0,0,0.6)' }}
+        style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.10), 0 -8px 40px rgba(0,0,0,0.6)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 sticky top-0 z-10"
-          style={{ background: '#0D1525', borderBottom: '0.5px solid rgba(100,150,255,0.07)' }}>
+          style={{ background: 'var(--panel)', borderBottom: '0.5px solid rgba(var(--accent-rgb),0.07)' }}>
           <div className="min-w-0">
             <p className="text-[14px] font-bold text-ink truncate">{client.name || client.phone}</p>
             {client.name && <p className="font-mono text-[11px] text-ink3">{formatPhone(client.phone)}</p>}
@@ -213,7 +213,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
           <div className="flex items-center gap-6">
             {loading ? (
               <div className="w-[80px] h-[80px] rounded-full animate-pulse"
-                style={{ background: 'rgba(100,150,255,0.07)' }} />
+                style={{ background: 'rgba(var(--accent-rgb),0.07)' }} />
             ) : (
               <ScoreArc score={score} />
             )}
@@ -223,7 +223,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
                 <p className="text-[18px] font-black" style={{ color: scoreColor }}>{scoreLabel}</p>
               </div>
               <div className="flex items-center gap-1.5">
-                <Flame size={14} style={{ color: streak > 0 ? '#F59E0B' : '#3D4E72' }} />
+                <Flame size={14} style={{ color: streak > 0 ? '#F59E0B' : 'var(--ink3)' }} />
                 <p className="text-[13px] font-bold text-ink">
                   {streak > 0 ? `${streak} dia${streak !== 1 ? 's' : ''} seguido${streak !== 1 ? 's' : ''}` : 'Sem sequência'}
                 </p>
@@ -233,9 +233,9 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
 
           {/* Financial row */}
           <div className="rounded-[10px] p-3 space-y-2"
-            style={{ background: 'rgba(16,185,129,0.05)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.15)' }}>
+            style={{ background: 'rgba(var(--brand-rgb),0.05)', boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.15)' }}>
             <p className="section-title flex items-center gap-1.5">
-              <DollarSign size={11} style={{ color: '#34D399' }} /> Financeiro
+              <DollarSign size={11} style={{ color: 'var(--brand-hi)' }} /> Financeiro
             </p>
             {loading ? (
               <div className="grid grid-cols-3 gap-2">
@@ -244,12 +244,12 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: 'Total recebido', value: fmtBRL(financials?.total_amount ?? 0), color: '#34D399' },
-                  { label: 'Lucro líquido',  value: fmtBRL(financials?.profit ?? 0),       color: '#10B981' },
-                  { label: 'Ticket médio',   value: fmtBRL(financials?.avg_ticket ?? 0),   color: '#7A8DB5' },
+                  { label: 'Total recebido', value: fmtBRL(financials?.total_amount ?? 0), color: 'var(--brand-hi)' },
+                  { label: 'Lucro líquido',  value: fmtBRL(financials?.profit ?? 0),       color: 'var(--brand)' },
+                  { label: 'Ticket médio',   value: fmtBRL(financials?.avg_ticket ?? 0),   color: 'var(--ink2)' },
                 ].map(s => (
                   <div key={s.label} className="rounded-[8px] p-2 text-center"
-                    style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+                    style={{ background: 'rgba(var(--accent-rgb),0.04)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
                     <p className="font-mono font-black text-[11px] leading-tight" style={{ color: s.color }}>
                       {s.value}
                     </p>
@@ -269,12 +269,12 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
           {!loading && history.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'No prazo', value: onTime, color: '#10B981' },
+                { label: 'No prazo', value: onTime, color: 'var(--brand)' },
                 { label: 'Em atraso', value: late,   color: '#F59E0B' },
                 { label: 'Faltou',   value: missed,  color: '#EF4444' },
               ].map(s => (
                 <div key={s.label} className="rounded-[8px] p-2.5 text-center"
-                  style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+                  style={{ background: 'rgba(var(--accent-rgb),0.04)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
                   <p className="font-mono font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
                   <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">{s.label}</p>
                 </div>
@@ -289,7 +289,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
                 <Receipt size={11} /> Últimos comprovantes
               </p>
               <div className="rounded-[10px] overflow-hidden"
-                style={{ boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+                style={{ boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
                 {financials.receipts.map((r, i) => {
                   const { icon, color } = statusIcon(r.status, r.is_duplicate)
                   const dt = new Date(r.received_at + 'Z')
@@ -299,8 +299,8 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
                     <div key={r.id}
                       className="flex items-center gap-3 px-3 py-2.5"
                       style={{
-                        background: i % 2 === 0 ? 'rgba(100,150,255,0.03)' : 'transparent',
-                        borderBottom: i < financials.receipts.length - 1 ? '0.5px solid rgba(100,150,255,0.06)' : 'none',
+                        background: i % 2 === 0 ? 'rgba(var(--accent-rgb),0.03)' : 'transparent',
+                        borderBottom: i < financials.receipts.length - 1 ? '0.5px solid rgba(var(--accent-rgb),0.06)' : 'none',
                       }}>
                       <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
                       <div className="flex-1 min-w-0">
@@ -394,20 +394,20 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
                 <TrendingUp size={11} /> Evolução do score
               </p>
               <div className="rounded-[10px] p-3"
-                style={{ background: 'rgba(100,150,255,0.03)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+                style={{ background: 'rgba(var(--accent-rgb),0.03)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
                 <ResponsiveContainer width="100%" height={100}>
                   <LineChart data={scoreSeries}>
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 8, fill: '#3D4E72' }}
+                      tick={{ fontSize: 8, fill: 'var(--ink3)' }}
                       axisLine={false} tickLine={false}
                       interval={Math.floor(scoreSeries.length / 4)}
                     />
                     <YAxis hide domain={[0, 1000]} />
-                    <Tooltip content={<ScoreTooltip />} cursor={{ stroke: 'rgba(16,185,129,0.2)' }} />
+                    <Tooltip content={<ScoreTooltip />} cursor={{ stroke: 'rgba(var(--brand-rgb),0.2)' }} />
                     <Line
                       type="monotone" dataKey="score"
-                      stroke={score >= 800 ? '#10B981' : score >= 500 ? '#F59E0B' : '#EF4444'}
+                      stroke={score >= 800 ? 'var(--brand)' : score >= 500 ? '#F59E0B' : '#EF4444'}
                       strokeWidth={2} dot={false} activeDot={{ r: 3 }}
                     />
                   </LineChart>
@@ -456,7 +456,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
               </div>
             ) : localNotes ? (
               <div className="rounded-[8px] p-3 text-[12px] text-ink2 leading-relaxed italic"
-                style={{ background: 'rgba(100,150,255,0.04)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.08)' }}>
+                style={{ background: 'rgba(var(--accent-rgb),0.04)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.08)' }}>
                 {localNotes}
               </div>
             ) : (
@@ -466,7 +466,7 @@ export default function ClientDetailModal({ client, onClose, onUpdated }) {
 
           {/* Score explanation */}
           <div className="rounded-[8px] p-3 space-y-1.5"
-            style={{ background: 'rgba(100,150,255,0.03)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}>
+            style={{ background: 'rgba(var(--accent-rgb),0.03)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}>
             <p className="section-title">Como funciona o score?</p>
             <div className="space-y-1 text-[11px] text-ink3">
               <p>⚡ Antes das 12h: streak +1, +30 pts (bônus por streak)</p>

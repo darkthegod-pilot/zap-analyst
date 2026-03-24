@@ -41,8 +41,8 @@ function CustomTooltip({ active, payload, label }) {
     <div
       className="rounded-[8px] px-3 py-2 text-[12px]"
       style={{
-        background: '#121D35',
-        boxShadow: '0 0 0 0.5px rgba(100,150,255,0.15), 0 4px 12px rgba(0,0,0,0.5)',
+        background: 'var(--raised)',
+        boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.15), 0 4px 12px rgba(0,0,0,0.5)',
       }}
     >
       <p className="font-semibold text-ink mb-1">{label}</p>
@@ -122,7 +122,7 @@ export default function ReportDashboard() {
       {/* Period tabs */}
       <div
         className="flex rounded-[10px] p-1 gap-1"
-        style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+        style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
       >
         {PERIODS.map(p => (
           <button
@@ -130,9 +130,9 @@ export default function ReportDashboard() {
             onClick={() => setPeriod(p.id)}
             className="flex-1 py-2 rounded-[8px] text-[12px] font-semibold transition-all duration-150"
             style={{
-              background: period === p.id ? 'rgba(16,185,129,0.12)' : 'transparent',
-              color:      period === p.id ? '#10B981'               : '#3D4E72',
-              boxShadow:  period === p.id ? '0 0 0 0.5px rgba(16,185,129,0.25)' : 'none',
+              background: period === p.id ? 'rgba(var(--brand-rgb),0.12)' : 'transparent',
+              color:      period === p.id ? 'var(--brand)'               : 'var(--ink3)',
+              boxShadow:  period === p.id ? '0 0 0 0.5px rgba(var(--brand-rgb),0.25)' : 'none',
             }}
           >
             {p.label}
@@ -152,20 +152,20 @@ export default function ReportDashboard() {
           {(() => {
             const BRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0)
             const approvalRate = data.total > 0 ? Math.round((data.approved / data.total) * 100) : 0
-            const rateColor = approvalRate >= 70 ? '#34D399' : approvalRate >= 40 ? '#FCD34D' : '#F87171'
+            const rateColor = approvalRate >= 70 ? 'var(--brand-hi)' : approvalRate >= 40 ? '#FCD34D' : '#F87171'
             return (
               <div className="space-y-2">
                 {/* Total + Lucro */}
                 <div className="grid grid-cols-2 gap-2">
                   <div
                     className="rounded-[12px] p-4"
-                    style={{ background: 'rgba(16,185,129,0.07)', boxShadow: '0 0 0 0.5px rgba(16,185,129,0.22)' }}
+                    style={{ background: 'rgba(var(--brand-rgb),0.07)', boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.22)' }}
                   >
                     <div className="flex items-center gap-1.5 mb-2">
-                      <DollarSign size={12} style={{ color: '#34D399' }} />
+                      <DollarSign size={12} style={{ color: 'var(--brand-hi)' }} />
                       <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Total recebido</p>
                     </div>
-                    <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: '#34D399' }}>
+                    <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: 'var(--brand-hi)' }}>
                       {BRL(data.total_amount)}
                     </p>
                     {data.avg_amount > 0 && (
@@ -179,10 +179,10 @@ export default function ReportDashboard() {
                     style={{ background: 'rgba(5,150,105,0.09)', boxShadow: '0 0 0 0.5px rgba(5,150,105,0.30)' }}
                   >
                     <div className="flex items-center gap-1.5 mb-2">
-                      <TrendingUp size={12} style={{ color: '#10B981' }} />
+                      <TrendingUp size={12} style={{ color: 'var(--brand)' }} />
                       <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Lucro líquido</p>
                     </div>
-                    <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: '#10B981' }}>
+                    <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: 'var(--brand)' }}>
                       {BRL(data.total_profit)}
                     </p>
                     <p className="text-[10px] text-ink3 mt-1.5">Margem de 56%</p>
@@ -193,7 +193,7 @@ export default function ReportDashboard() {
                 {data.total > 0 && (
                   <div
                     className="rounded-[10px] px-4 py-3 flex items-center gap-4"
-                    style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+                    style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
                   >
                     <Percent size={14} style={{ color: rateColor, flexShrink: 0 }} />
                     <div className="flex-1">
@@ -201,7 +201,7 @@ export default function ReportDashboard() {
                         <span className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">Taxa de aprovação</span>
                         <span className="font-mono font-black text-[14px]" style={{ color: rateColor }}>{approvalRate}%</span>
                       </div>
-                      <div className="h-1.5 rounded-full" style={{ background: 'rgba(100,150,255,0.08)' }}>
+                      <div className="h-1.5 rounded-full" style={{ background: 'rgba(var(--accent-rgb),0.08)' }}>
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{ width: `${approvalRate}%`, background: rateColor, boxShadow: `0 0 6px ${rateColor}55` }}
@@ -216,25 +216,25 @@ export default function ReportDashboard() {
 
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <StatCard icon={CheckCircle}   value={data.approved}   label="Aprovados"  color="#34D399" bg="rgba(16,185,129,0.06)" shadow="0 0 0 0.5px rgba(16,185,129,0.18)" />
+            <StatCard icon={CheckCircle}   value={data.approved}   label="Aprovados"  color="var(--brand-hi)" bg="rgba(var(--brand-rgb),0.06)" shadow="0 0 0 0.5px rgba(var(--brand-rgb),0.18)" />
             <StatCard icon={XCircle}       value={data.rejected}   label="Rejeitados" color="#F87171" bg="rgba(239,68,68,0.06)"  shadow="0 0 0 0.5px rgba(239,68,68,0.18)"  />
             <StatCard icon={AlertTriangle} value={data.suspicious} label="Suspeitos"  color="#FCD34D" bg="rgba(245,158,11,0.06)" shadow="0 0 0 0.5px rgba(245,158,11,0.18)" />
-            <StatCard icon={Clock}         value={data.pending}    label="Pendentes"  color="#7A8DB5" bg="rgba(75,94,138,0.06)"  shadow="0 0 0 0.5px rgba(75,94,138,0.18)"  />
+            <StatCard icon={Clock}         value={data.pending}    label="Pendentes"  color="var(--ink2)" bg="rgba(75,94,138,0.06)"  shadow="0 0 0 0.5px rgba(75,94,138,0.18)"  />
           </div>
 
           {/* Extra stats */}
           <div
             className="rounded-[10px] p-2 md:p-3 grid grid-cols-3 gap-1.5 md:gap-3"
-            style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+            style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
           >
             <div className="text-center py-1">
-              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: '#10B981' }}>
+              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: 'var(--brand)' }}>
                 {data.total}
               </p>
               <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Total</p>
             </div>
             <div className="text-center py-1">
-              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: '#7A8DB5' }}>
+              <p className="font-mono font-black text-[15px] md:text-[18px] tabular" style={{ color: 'var(--ink2)' }}>
                 {data.auto_approved}
               </p>
               <p className="text-[9px] text-ink3 uppercase tracking-wide mt-0.5">Auto-apr.</p>
@@ -251,7 +251,7 @@ export default function ReportDashboard() {
           {dailyData.length > 1 && (
             <div
               className="rounded-[10px] p-4 space-y-3"
-              style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+              style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
             >
               <p className="section-title flex items-center gap-1.5">
                 <TrendingUp size={11} /> Comprovantes por dia
@@ -260,17 +260,17 @@ export default function ReportDashboard() {
                 <BarChart data={dailyData} barCategoryGap="35%">
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 9, fill: '#3D4E72' }}
+                    tick={{ fontSize: 9, fill: 'var(--ink3)' }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis hide allowDecimals={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(100,150,255,0.04)' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(var(--accent-rgb),0.04)' }} />
                   <Legend
                     wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
-                    formatter={v => <span style={{ color: '#7A8DB5' }}>{v}</span>}
+                    formatter={v => <span style={{ color: 'var(--ink2)' }}>{v}</span>}
                   />
-                  <Bar dataKey="approved"   name="Aprovados"  fill="#10B981" radius={[3,3,0,0]} />
+                  <Bar dataKey="approved"   name="Aprovados"  fill="var(--brand)" radius={[3,3,0,0]} />
                   <Bar dataKey="rejected"   name="Rejeitados" fill="#EF4444" radius={[3,3,0,0]} />
                   <Bar dataKey="suspicious" name="Suspeitos"  fill="#F59E0B" radius={[3,3,0,0]} />
                 </BarChart>
@@ -282,7 +282,7 @@ export default function ReportDashboard() {
           {showHourly && (
             <div
               className="rounded-[10px] p-4 space-y-3"
-              style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+              style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
             >
               <p className="section-title flex items-center gap-1.5">
                 <TrendingUp size={11} /> Distribuição por hora
@@ -291,21 +291,21 @@ export default function ReportDashboard() {
                 <LineChart data={hourlyData}>
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 9, fill: '#3D4E72' }}
+                    tick={{ fontSize: 9, fill: 'var(--ink3)' }}
                     axisLine={false}
                     tickLine={false}
                     interval={3}
                   />
                   <YAxis hide allowDecimals={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(16,185,129,0.2)' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(var(--brand-rgb),0.2)' }} />
                   <Line
                     type="monotone"
                     dataKey="total"
                     name="Total"
-                    stroke="#10B981"
+                    stroke="var(--brand)"
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#10B981' }}
+                    activeDot={{ r: 4, fill: 'var(--brand)' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -315,18 +315,18 @@ export default function ReportDashboard() {
           {/* Clients summary */}
           <div
             className="rounded-[10px] p-3 flex items-center gap-4"
-            style={{ background: '#0D1525', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07)' }}
+            style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
           >
             <Users size={14} className="text-ink3 shrink-0" />
             <div className="flex-1 grid grid-cols-3 gap-2 text-center">
               <div>
-                <p className="font-mono font-black text-[16px]" style={{ color: '#7A8DB5' }}>
+                <p className="font-mono font-black text-[16px]" style={{ color: 'var(--ink2)' }}>
                   {data.total_clients}
                 </p>
                 <p className="text-[9px] text-ink4 uppercase tracking-wide">Total</p>
               </div>
               <div>
-                <p className="font-mono font-black text-[16px]" style={{ color: '#34D399' }}>
+                <p className="font-mono font-black text-[16px]" style={{ color: 'var(--brand-hi)' }}>
                   {data.active_clients}
                 </p>
                 <p className="text-[9px] text-ink4 uppercase tracking-wide">Ativos</p>
@@ -344,8 +344,8 @@ export default function ReportDashboard() {
           <div
             className="rounded-[8px] p-3 flex items-center gap-2.5 text-[11px]"
             style={{
-              background: 'rgba(16,185,129,0.04)',
-              boxShadow: '0 0 0 0.5px rgba(16,185,129,0.12)',
+              background: 'rgba(var(--brand-rgb),0.04)',
+              boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.12)',
             }}
           >
             <Smartphone size={12} className="text-brand shrink-0" />

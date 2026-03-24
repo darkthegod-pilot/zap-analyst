@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import { usePolling }    from './hooks/usePolling'
+import { useTheme }      from './hooks/useTheme'
 import { api }           from './api'
 import { presetToDates } from './components/DateFilter'
 import DashboardPage   from './components/DashboardPage'
@@ -65,9 +66,9 @@ function AvatarMenu({ onLogout, onSettings }) {
         <span
           className="w-8 h-8 rounded-full flex items-center justify-center font-mono font-black text-[11px]"
           style={{
-            background: 'rgba(16,185,129,0.12)',
-            boxShadow: '0 0 0 1.5px rgba(16,185,129,0.30)',
-            color: '#10B981',
+            background: 'rgba(var(--brand-rgb),0.12)',
+            boxShadow: '0 0 0 1.5px rgba(var(--brand-rgb),0.30)',
+            color: 'var(--brand)',
           }}
         >DC</span>
         <ChevronDown
@@ -82,7 +83,7 @@ function AvatarMenu({ onLogout, onSettings }) {
           className="avatar-dropdown"
           role="menu"
         >
-          <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(100,150,255,0.08)' }}>
+          <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(var(--accent-rgb),0.08)' }}>
             <p className="text-[11px] font-bold text-ink">DarkCred</p>
             <p className="text-[10px] text-ink3">ZAP Analyst</p>
           </div>
@@ -95,7 +96,7 @@ function AvatarMenu({ onLogout, onSettings }) {
             Configurações
           </button>
 
-          <div className="my-1" style={{ borderTop: '0.5px solid rgba(100,150,255,0.08)' }} />
+          <div className="my-1" style={{ borderTop: '0.5px solid rgba(var(--accent-rgb),0.08)' }} />
 
           <button
             className="dropdown-item text-danger"
@@ -119,6 +120,7 @@ export default function App() {
   const [dateCtx,  setDateCtx]  = useState({ preset: 'today', ...TODAY })
   const [unlocked, setUnlocked] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [theme, setTheme] = useTheme()
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -167,7 +169,7 @@ export default function App() {
   if (!unlocked) return <PinLock onUnlock={() => setUnlocked(true)} />
 
   return (
-    <div className="min-h-dvh flex" style={{ background: '#080D18', color: '#E8EEF8' }}>
+    <div className="min-h-dvh flex" style={{ background: 'var(--canvas)', color: 'var(--ink)' }}>
 
       {/* ── Toast ─────────────────────────────────────── */}
       <Toaster
@@ -175,16 +177,16 @@ export default function App() {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#0D1525',
-            border: '0.5px solid rgba(100,150,255,0.12)',
-            color: '#E8EEF8',
+            background: 'var(--panel)',
+            border: '0.5px solid rgba(var(--accent-rgb),0.12)',
+            color: 'var(--ink)',
             borderRadius: '8px',
             fontFamily: 'Inter,sans-serif',
             fontSize: '13px',
             boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
           },
-          success: { iconTheme: { primary: '#10B981', secondary: '#080D18' } },
-          error:   { iconTheme: { primary: '#EF4444', secondary: '#080D18' } },
+          success: { iconTheme: { primary: 'var(--brand)', secondary: 'var(--canvas)' } },
+          error:   { iconTheme: { primary: '#EF4444', secondary: 'var(--canvas)' } },
         }}
       />
 
@@ -207,11 +209,11 @@ export default function App() {
           <div
             className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
             style={{
-              background: 'rgba(16,185,129,0.10)',
-              boxShadow: '0 0 0 1px rgba(16,185,129,0.22), 0 0 20px rgba(16,185,129,0.08)',
+              background: 'rgba(var(--brand-rgb),0.10)',
+              boxShadow: '0 0 0 1px rgba(var(--brand-rgb),0.22), 0 0 20px rgba(var(--brand-rgb),0.08)',
             }}
           >
-            <span className="font-mono font-black text-[11px]" style={{ color: '#10B981' }}>DC</span>
+            <span className="font-mono font-black text-[11px]" style={{ color: 'var(--brand)' }}>DC</span>
           </div>
           <div>
             <p className="font-black text-[14px] leading-none text-ink">DarkCred</p>
@@ -237,7 +239,7 @@ export default function App() {
             </button>
           ))}
 
-          <div className="my-3" style={{ borderTop: '0.5px solid rgba(100,150,255,0.07)' }} />
+          <div className="my-3" style={{ borderTop: '0.5px solid rgba(var(--accent-rgb),0.07)' }} />
           <p className="sidebar-section-label">Sistema</p>
 
           <button
@@ -253,7 +255,7 @@ export default function App() {
         <div className="sidebar-footer">
           <div
             className="flex items-center gap-1.5 text-[11px] font-semibold"
-            style={{ color: online ? '#34D399' : '#F87171' }}
+            style={{ color: online ? 'var(--brand-hi)' : '#F87171' }}
           >
             {online
               ? <span className="dot-live" />
@@ -307,9 +309,9 @@ export default function App() {
               <div
                 className="md:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
                 style={{
-                  background: online ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
-                  boxShadow:  online ? '0 0 0 0.5px rgba(16,185,129,0.22)' : '0 0 0 0.5px rgba(239,68,68,0.22)',
-                  color:      online ? '#34D399' : '#F87171',
+                  background: online ? 'rgba(var(--brand-rgb),0.08)' : 'rgba(239,68,68,0.08)',
+                  boxShadow:  online ? '0 0 0 0.5px rgba(var(--brand-rgb),0.22)' : '0 0 0 0.5px rgba(239,68,68,0.22)',
+                  color:      online ? 'var(--brand-hi)' : '#F87171',
                 }}
               >
                 {online ? <span className="dot-live" /> : <span className="w-1.5 h-1.5 rounded-full bg-danger" />}
@@ -329,12 +331,12 @@ export default function App() {
           {tab === 'receipts' && (
             <div
               className="flex flex-wrap gap-1.5 px-4 pb-3"
-              style={{ borderTop: '0.5px solid rgba(100,150,255,0.05)', paddingTop: '10px' }}
+              style={{ borderTop: '0.5px solid rgba(var(--accent-rgb),0.05)', paddingTop: '10px' }}
             >
-              <StatPill Icon={FileStack}     value={stats?.total}     label="total"  color="#7A8DB5" bg="rgba(100,150,255,0.05)" shadow="0 0 0 0.5px rgba(100,150,255,0.09)" />
-              <StatPill Icon={CheckCircle}   value={stats?.approved}  label="aprov." color="#34D399" bg="rgba(16,185,129,0.08)"  shadow="0 0 0 0.5px rgba(16,185,129,0.20)"  />
+              <StatPill Icon={FileStack}     value={stats?.total}     label="total"  color="var(--ink2)" bg="rgba(var(--accent-rgb),0.05)" shadow="0 0 0 0.5px rgba(var(--accent-rgb),0.09)" />
+              <StatPill Icon={CheckCircle}   value={stats?.approved}  label="aprov." color="var(--brand-hi)" bg="rgba(var(--brand-rgb),0.08)"  shadow="0 0 0 0.5px rgba(var(--brand-rgb),0.20)"  />
               <StatPill Icon={AlertTriangle} value={stats?.suspicious} label="susp."  color="#FCD34D" bg="rgba(245,158,11,0.08)"  shadow="0 0 0 0.5px rgba(245,158,11,0.20)"  />
-              <StatPill Icon={Clock}         value={stats?.pending}   label="pend."  color="#7A8DB5" bg="rgba(75,94,138,0.08)"   shadow="0 0 0 0.5px rgba(75,94,138,0.20)"   />
+              <StatPill Icon={Clock}         value={stats?.pending}   label="pend."  color="var(--ink2)" bg="rgba(75,94,138,0.08)"   shadow="0 0 0 0.5px rgba(75,94,138,0.20)"   />
               <StatPill Icon={XCircle}       value={stats?.rejected}  label="rejeit." color="#F87171" bg="rgba(239,68,68,0.08)"   shadow="0 0 0 0.5px rgba(239,68,68,0.20)"   />
             </div>
           )}
@@ -353,7 +355,7 @@ export default function App() {
           {tab === 'clients'   && <ClientList />}
           {tab === 'reports'   && <ReportDashboard />}
           {tab === 'calote'    && <CalotePage />}
-          {tab === 'settings'  && <SettingsPage />}
+          {tab === 'settings'  && <SettingsPage theme={theme} setTheme={setTheme} />}
         </main>
       </div>
 
@@ -361,9 +363,9 @@ export default function App() {
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe"
         style={{
-          background: 'rgba(8,13,24,0.96)',
+          background: 'rgba(var(--canvas-rgb),0.96)',
           backdropFilter: 'blur(20px)',
-          borderTop: '0.5px solid rgba(100,150,255,0.09)',
+          borderTop: '0.5px solid rgba(var(--accent-rgb),0.09)',
         }}
       >
         <div className="flex justify-around py-1">
@@ -379,7 +381,7 @@ export default function App() {
                   <span
                     className="absolute -top-1 -right-2 min-w-4 h-4 flex items-center justify-center
                                rounded-full text-[9px] font-black px-1"
-                    style={{ background: '#F59E0B', color: '#080D18' }}
+                    style={{ background: '#F59E0B', color: 'var(--canvas)' }}
                   >
                     {stats.pending > 9 ? '9+' : stats.pending}
                   </span>

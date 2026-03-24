@@ -62,18 +62,18 @@ export default function PinLock({ onUnlock }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8"
-      style={{ background: '#080D18' }}
+      style={{ background: 'var(--canvas)' }}
     >
       {/* Logo */}
       <div className="flex flex-col items-center gap-3">
         <div
           className="w-16 h-16 rounded-[16px] flex items-center justify-center"
           style={{
-            background: 'rgba(16,185,129,0.10)',
-            boxShadow: '0 0 0 1px rgba(16,185,129,0.25), 0 0 32px rgba(16,185,129,0.10)',
+            background: 'rgba(var(--brand-rgb),0.10)',
+            boxShadow: '0 0 0 1px rgba(var(--brand-rgb),0.25), 0 0 32px rgba(var(--brand-rgb),0.10)',
           }}
         >
-          <span className="font-mono font-black text-[22px]" style={{ color: '#10B981' }}>DC</span>
+          <span className="font-mono font-black text-[22px]" style={{ color: 'var(--brand)' }}>DC</span>
         </div>
         <div className="text-center">
           <h1 className="font-black text-[18px] text-ink">DarkCred</h1>
@@ -92,10 +92,10 @@ export default function PinLock({ onUnlock }) {
             className="w-4 h-4 rounded-full transition-all duration-150"
             style={{
               background: i < digits.length
-                ? (error ? '#EF4444' : '#10B981')
-                : 'rgba(100,150,255,0.12)',
+                ? (error ? '#EF4444' : 'var(--brand)')
+                : 'rgba(var(--accent-rgb),0.12)',
               boxShadow: i < digits.length
-                ? (error ? '0 0 8px rgba(239,68,68,0.6)' : '0 0 8px rgba(16,185,129,0.6)')
+                ? (error ? '0 0 8px rgba(239,68,68,0.6)' : '0 0 8px rgba(var(--brand-rgb),0.6)')
                 : 'none',
               transform: i < digits.length ? 'scale(1.15)' : 'scale(1)',
             }}
@@ -125,8 +125,8 @@ export default function PinLock({ onUnlock }) {
                 className="flex items-center justify-center rounded-[14px] h-16 text-ink2
                            transition-all duration-100 active:scale-95 disabled:opacity-30"
                 style={{
-                  background: 'rgba(100,150,255,0.06)',
-                  boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10)',
+                  background: 'rgba(var(--accent-rgb),0.06)',
+                  boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.10)',
                 }}
               >
                 <Delete size={18} />
@@ -142,8 +142,8 @@ export default function PinLock({ onUnlock }) {
                          font-mono font-black text-[22px] text-ink
                          transition-all duration-100 active:scale-95 disabled:opacity-50"
               style={{
-                background: 'rgba(100,150,255,0.06)',
-                boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10)',
+                background: 'rgba(var(--accent-rgb),0.06)',
+                boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.10)',
               }}
             >
               {loading && digits.length === 0 && k === '0'

@@ -12,8 +12,8 @@ export function SkeletonCard() {
     <div
       className="rounded-[10px] p-3 flex items-center gap-3"
       style={{
-        background: '#0D1525',
-        boxShadow: '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.4)',
+        background: 'var(--panel)',
+        boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
       }}
     >
       <SkeletonBlock w={52} h={52} rounded={7} />

@@ -22,8 +22,8 @@ function ConfidenceArc({ score }) {
   const gap    = circ * 0.22
   const arc    = circ - gap
   const fill   = (pct / 100) * arc
-  const color  = pct >= 85 ? '#10B981' : pct >= 55 ? '#F59E0B' : '#EF4444'
-  const glow   = pct >= 85 ? 'rgba(16,185,129,0.55)' : pct >= 55 ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)'
+  const color  = pct >= 85 ? 'var(--brand)' : pct >= 55 ? '#F59E0B' : '#EF4444'
+  const glow   = pct >= 85 ? 'rgba(var(--brand-rgb),0.55)' : pct >= 55 ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)'
   const size   = (radius + stroke) * 2 + 2
   const rotate = 90 + (360 * 0.11)
 
@@ -31,7 +31,7 @@ function ConfidenceArc({ score }) {
     <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: `rotate(${rotate}deg)` }}>
         <circle cx={size/2} cy={size/2} r={radius} fill="none"
-          stroke="rgba(100,150,255,0.07)" strokeWidth={stroke}
+          stroke="rgba(var(--accent-rgb),0.07)" strokeWidth={stroke}
           strokeDasharray={`${arc} ${circ - arc}`} strokeLinecap="round" />
         <circle cx={size/2} cy={size/2} r={radius} fill="none"
           stroke={color} strokeWidth={stroke}
@@ -48,11 +48,11 @@ function ConfidenceArc({ score }) {
 
 /* ── Status → card shadow ──────────────────────── */
 function cardShadow(status, selected) {
-  if (selected) return '0 0 0 1.5px rgba(16,185,129,0.55), 0 2px 6px rgba(0,0,0,0.4)'
-  if (status === 'approved')   return '0 0 0 0.5px rgba(16,185,129,0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(16,185,129,0.08)'
+  if (selected) return '0 0 0 1.5px rgba(var(--brand-rgb),0.55), 0 2px 6px rgba(0,0,0,0.4)'
+  if (status === 'approved')   return '0 0 0 0.5px rgba(var(--brand-rgb),0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(var(--brand-rgb),0.08)'
   if (status === 'suspicious') return '0 0 0 0.5px rgba(245,158,11,0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(245,158,11,0.08)'
   if (status === 'rejected')   return '0 0 0 0.5px rgba(239,68,68,0.25), 0 2px 6px rgba(0,0,0,0.4), 0 0 20px rgba(239,68,68,0.08)'
-  return '0 0 0 0.5px rgba(100,150,255,0.07), 0 2px 6px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25)'
+  return '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25)'
 }
 
 /* ─────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export default function ReceiptCard({ receipt, onRefresh, selected, onToggle, bu
     <>
       <article
         className="rounded-[10px] overflow-hidden animate-fade-in cursor-pointer"
-        style={{ background: '#0D1525', boxShadow: cardShadow(receipt.status, selected) }}
+        style={{ background: 'var(--panel)', boxShadow: cardShadow(receipt.status, selected) }}
         onClick={handleRowClick}
         role="button"
       >
@@ -99,15 +99,15 @@ export default function ReceiptCard({ receipt, onRefresh, selected, onToggle, bu
                 onClick={onToggle}
                 className="w-[52px] h-[52px] rounded-[7px] flex items-center justify-center focus:outline-none"
                 style={{
-                  background: selected ? 'rgba(16,185,129,0.15)' : 'rgba(100,150,255,0.05)',
-                  boxShadow: selected ? '0 0 0 1.5px rgba(16,185,129,0.5)' : '0 0 0 0.5px rgba(100,150,255,0.09)',
+                  background: selected ? 'rgba(var(--brand-rgb),0.15)' : 'rgba(var(--accent-rgb),0.05)',
+                  boxShadow: selected ? '0 0 0 1.5px rgba(var(--brand-rgb),0.5)' : '0 0 0 0.5px rgba(var(--accent-rgb),0.09)',
                 }}
               >
                 <div className="w-5 h-5 rounded-[4px] flex items-center justify-center"
-                  style={{ background: selected ? '#10B981' : 'transparent', boxShadow: selected ? 'none' : '0 0 0 1.5px rgba(100,150,255,0.25)' }}>
+                  style={{ background: selected ? 'var(--brand)' : 'transparent', boxShadow: selected ? 'none' : '0 0 0 1.5px rgba(var(--accent-rgb),0.25)' }}>
                   {selected && (
                     <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
-                      <path d="M1 4L4 7L10 1" stroke="#080D18" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M1 4L4 7L10 1" stroke="var(--canvas)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
                 </div>
@@ -121,11 +121,11 @@ export default function ReceiptCard({ receipt, onRefresh, selected, onToggle, bu
               >
                 <img src={imgUrl} alt="comprovante" loading="lazy"
                   className="w-full h-full object-cover"
-                  style={{ boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10)' }} />
+                  style={{ boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.10)' }} />
               </button>
             ) : (
               <div className="rounded-[7px] flex items-center justify-center"
-                style={{ width: 52, height: 52, background: 'rgba(100,150,255,0.05)', boxShadow: '0 0 0 0.5px rgba(100,150,255,0.09)' }}>
+                style={{ width: 52, height: 52, background: 'rgba(var(--accent-rgb),0.05)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.09)' }}>
                 <ImageOff size={18} className="text-ink3" />
               </div>
             )}
@@ -137,7 +137,7 @@ export default function ReceiptCard({ receipt, onRefresh, selected, onToggle, bu
               {a?.bank_name || receipt.client?.name || receipt.client?.phone || `#${receipt.client_id}`}
             </p>
             {a?.amount ? (
-              <p className="font-mono font-black text-[14px] tabular lining" style={{ color: '#34D399' }}>
+              <p className="font-mono font-black text-[14px] tabular lining" style={{ color: 'var(--brand-hi)' }}>
                 {a.amount}
               </p>
             ) : (

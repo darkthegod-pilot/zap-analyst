@@ -60,8 +60,8 @@ export default function AddClientModal({ onClose, onCreated }) {
       <div
         className="w-full sm:max-w-sm rounded-[16px] p-5 space-y-4"
         style={{
-          background: '#0D1525',
-          boxShadow: '0 0 0 0.5px rgba(100,150,255,0.10), 0 24px 60px rgba(0,0,0,0.6)',
+          background: 'var(--panel)',
+          boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.10), 0 24px 60px rgba(0,0,0,0.6)',
         }}
         onClick={e => e.stopPropagation()}
       >

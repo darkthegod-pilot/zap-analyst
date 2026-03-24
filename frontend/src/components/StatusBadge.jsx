@@ -1,8 +1,8 @@
 const CONFIG = {
-  approved:  { label: 'Aprovado',  color: '#34D399', bg: 'rgba(16,185,129,0.10)',  shadow: '0 0 0 0.5px rgba(16,185,129,0.22)'  },
+  approved:  { label: 'Aprovado',  color: 'var(--brand-hi)', bg: 'rgba(var(--brand-rgb),0.10)',  shadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.22)'  },
   rejected:  { label: 'Rejeitado', color: '#F87171', bg: 'rgba(239,68,68,0.10)',   shadow: '0 0 0 0.5px rgba(239,68,68,0.22)'   },
   suspicious:{ label: 'Suspeito',  color: '#FCD34D', bg: 'rgba(245,158,11,0.10)',  shadow: '0 0 0 0.5px rgba(245,158,11,0.22)'  },
-  pending:   { label: 'Pendente',  color: '#7A8DB5', bg: 'rgba(75,94,138,0.10)',   shadow: '0 0 0 0.5px rgba(75,94,138,0.22)'   },
+  pending:   { label: 'Pendente',  color: 'var(--ink2)', bg: 'rgba(75,94,138,0.10)',   shadow: '0 0 0 0.5px rgba(75,94,138,0.22)'   },
 }
 
 export default function StatusBadge({ status }) {

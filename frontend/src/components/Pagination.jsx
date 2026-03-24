@@ -19,7 +19,7 @@ export default function Pagination({ total, limit, offset, onChange }) {
   return (
     <div
       className="mt-4 pt-4 flex flex-col items-center gap-3"
-      style={{ borderTop: '0.5px solid rgba(100,150,255,0.07)' }}
+      style={{ borderTop: '0.5px solid rgba(var(--accent-rgb),0.07)' }}
     >
       <p className="text-[11px] text-ink3 font-mono">
         {start}–{end} de <span className="text-ink2 font-semibold">{total}</span>

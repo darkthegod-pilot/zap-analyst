@@ -4,23 +4,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* ── Surfaces (deep navy-blue base) ─────────────────── */
-        canvas:  '#080D18',
-        panel:   '#0D1525',
-        raised:  '#121D35',
-        hover:   '#172240',
-        overlay: '#1E2D4F',
+        /* ── Surfaces — resolve CSS vars at runtime ───────────── */
+        canvas:  'var(--canvas)',
+        panel:   'var(--panel)',
+        raised:  'var(--raised)',
+        hover:   'var(--hover)',
+        overlay: 'var(--overlay)',
 
-        /* ── Brand (muted emerald — not neon) ────────────────── */
+        /* ── Brand ────────────────────────────────────────────── */
         brand: {
-          DEFAULT: '#10B981',
-          hi:  '#34D399',
-          bg:  'rgba(16,185,129,0.10)',
-          bdr: 'rgba(16,185,129,0.25)',
-          dim: 'rgba(16,185,129,0.06)',
+          DEFAULT: 'var(--brand)',
+          hi:  'var(--brand-hi)',
         },
 
-        /* ── Status ──────────────────────────────────────────── */
+        /* ── Status (fixed — not themed) ─────────────────────── */
         ok: {
           DEFAULT: '#10B981',
           hi:  '#34D399',
@@ -40,20 +37,18 @@ export default {
           bdr: 'rgba(239,68,68,0.20)',
         },
         idle: {
-          DEFAULT: '#4B5E8A',
-          bg:  'rgba(75,94,138,0.10)',
-          bdr: 'rgba(75,94,138,0.20)',
+          DEFAULT: 'var(--idle)',
         },
 
         /* ── Text hierarchy ──────────────────────────────────── */
-        ink:  '#E8EEF8',
-        ink2: '#7A8DB5',
-        ink3: '#3D4E72',
-        ink4: '#1E2D4F',
+        ink:  'var(--ink)',
+        ink2: 'var(--ink2)',
+        ink3: 'var(--ink3)',
+        ink4: 'var(--ink4)',
       },
 
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-sans)'],
         mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
       },
 

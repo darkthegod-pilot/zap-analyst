@@ -149,8 +149,8 @@ export default function ReceiptFeed({ onRefreshStats }) {
             <div
               className="absolute right-0 top-full mt-1.5 z-30 p-3 rounded-[12px]"
               style={{
-                background: '#0D1525',
-                boxShadow: '0 0 0 0.5px rgba(100,150,255,0.12), 0 8px 24px rgba(0,0,0,0.5)',
+                background: 'var(--panel)',
+                boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.12), 0 8px 24px rgba(0,0,0,0.5)',
                 minWidth: 280,
               }}
             >
@@ -232,8 +232,8 @@ export default function ReceiptFeed({ onRefreshStats }) {
           className="fixed left-0 right-0 z-40 flex items-center gap-2 px-4 py-3"
           style={{
             bottom: 64, // above bottom nav (h-16 = 64px)
-            background: '#121D35',
-            boxShadow: '0 -1px 0 rgba(100,150,255,0.10), 0 -8px 24px rgba(0,0,0,0.5)',
+            background: 'var(--raised)',
+            boxShadow: '0 -1px 0 rgba(var(--accent-rgb),0.10), 0 -8px 24px rgba(0,0,0,0.5)',
           }}
         >
           <span className="font-mono text-[12px] font-bold text-brand flex-1">

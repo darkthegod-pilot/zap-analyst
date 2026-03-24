@@ -5,8 +5,8 @@ export default function EmptyState({ icon: Icon, title, subtitle, action }) {
         <div
           className="w-14 h-14 rounded-[12px] flex items-center justify-center"
           style={{
-            background: 'rgba(100,150,255,0.05)',
-            boxShadow: '0 0 0 0.5px rgba(100,150,255,0.09)',
+            background: 'rgba(var(--accent-rgb),0.05)',
+            boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.09)',
           }}
         >
           <Icon size={24} className="text-ink3" />
