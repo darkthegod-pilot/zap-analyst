@@ -111,6 +111,11 @@ export const api = {
   getReportSummary: (period = 'today') =>
     req(`/reports/summary?period=${period}`),
 
+  getAllTimeStats: () => req('/reports/alltime'),
+
+  getDailyChart: (date_from, date_to) =>
+    req(`/reports/daily-chart?date_from=${date_from}&date_to=${date_to}`),
+
   requestReport: (message) =>
     req('/reports/request', { method: 'POST', body: JSON.stringify({ message }) }),
 

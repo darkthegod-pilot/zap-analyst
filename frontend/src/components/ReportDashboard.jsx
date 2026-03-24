@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import {
   Smartphone, Loader2, CheckCircle, XCircle, AlertTriangle, Clock,
-  TrendingUp, Users, DollarSign, Percent,
+  TrendingUp, Users, DollarSign, Percent, CalendarDays, Infinity as InfinityIcon,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '../api'
@@ -57,12 +57,36 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+function firstDayOfMonth() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+function lastDayOfMonth() {
+  const d = new Date()
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  return last.toISOString().slice(0, 10)
+}
+
 export default function ReportDashboard() {
   const [period,  setPeriod]  = useState('today')
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [copied,  setCopied]  = useState(false)
+
+  // All-time stats
+  const [allTime,    setAllTime]    = useState(null)
+  const [atLoading,  setAtLoading]  = useState(true)
+
+  // Custom chart
+  const [chartFrom,    setChartFrom]    = useState(firstDayOfMonth)
+  const [chartTo,      setChartTo]      = useState(lastDayOfMonth)
+  const [chartData,    setChartData]    = useState(null)
+  const [chartLoading, setChartLoading] = useState(false)
+  const chartTimer = useRef(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -77,6 +101,32 @@ export default function ReportDashboard() {
   }, [period])
 
   useEffect(() => { load() }, [load])
+
+  // Load all-time stats once on mount
+  useEffect(() => {
+    api.getAllTimeStats()
+      .then(setAllTime)
+      .catch(() => {})
+      .finally(() => setAtLoading(false))
+  }, [])
+
+  // Load chart data (debounced) when dates change
+  useEffect(() => {
+    if (!chartFrom || !chartTo || chartFrom > chartTo) return
+    clearTimeout(chartTimer.current)
+    chartTimer.current = setTimeout(async () => {
+      setChartLoading(true)
+      try {
+        const r = await api.getDailyChart(chartFrom, chartTo)
+        setChartData(r)
+      } catch (e) {
+        // silently ignore
+      } finally {
+        setChartLoading(false)
+      }
+    }, 400)
+    return () => clearTimeout(chartTimer.current)
+  }, [chartFrom, chartTo])
 
   async function sendNow() {
     setSending(true)
@@ -118,6 +168,43 @@ export default function ReportDashboard() {
           Enviar no WhatsApp
         </button>
       </div>
+
+      {/* All-time stats card */}
+      {atLoading ? (
+        <div className="skeleton rounded-[12px] h-20" />
+      ) : allTime && (
+        <div
+          className="rounded-[12px] p-4"
+          style={{
+            background: 'rgba(var(--brand-rgb),0.06)',
+            boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.22), 0 2px 12px rgba(0,0,0,0.25)',
+          }}
+        >
+          <div className="flex items-center gap-1.5 mb-3">
+            <InfinityIcon size={11} style={{ color: 'var(--brand-hi)' }} />
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink3">
+              Faturamento — todos os tempos
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-0">
+            <div className="pr-4" style={{ borderRight: '0.5px solid rgba(var(--brand-rgb),0.18)' }}>
+              <p className="text-[10px] text-ink3 uppercase tracking-wide font-semibold mb-1">Total recebido</p>
+              <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: 'var(--brand-hi)' }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(allTime.total_amount)}
+              </p>
+            </div>
+            <div className="pl-4">
+              <p className="text-[10px] text-ink3 uppercase tracking-wide font-semibold mb-1">Lucro total</p>
+              <p className="font-mono font-black text-[22px] tabular lining leading-none" style={{ color: 'var(--brand)' }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(allTime.total_profit)}
+              </p>
+            </div>
+          </div>
+          <p className="text-[10px] text-ink4 mt-2.5">
+            {allTime.total_receipts} comprovantes · {allTime.total_approved} aprovados
+          </p>
+        </div>
+      )}
 
       {/* Period tabs */}
       <div
@@ -356,6 +443,85 @@ export default function ReportDashboard() {
           </div>
         </>
       ) : null}
+
+      {/* ── Gráfico por período (custom date range) ───────────────────────── */}
+      <div
+        className="rounded-[10px] p-4 space-y-3"
+        style={{ background: 'var(--panel)', boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.07)' }}
+      >
+        <div className="flex items-center gap-1.5">
+          <CalendarDays size={11} className="text-brand" />
+          <p className="section-title">Gráfico por período</p>
+        </div>
+
+        {/* Date inputs */}
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={chartFrom}
+            onChange={e => setChartFrom(e.target.value)}
+            className="input flex-1 text-[12px] py-2"
+          />
+          <span className="text-[11px] text-ink4 shrink-0">até</span>
+          <input
+            type="date"
+            value={chartTo}
+            onChange={e => setChartTo(e.target.value)}
+            className="input flex-1 text-[12px] py-2"
+          />
+        </div>
+
+        {/* Summary row */}
+        {chartData && !chartLoading && (
+          <div className="flex gap-4 text-[11px] text-ink3">
+            <span>
+              <span className="font-mono font-semibold text-ink">{chartData.approved}</span> aprovados
+            </span>
+            <span>
+              <span className="font-mono font-semibold" style={{ color: 'var(--brand-hi)' }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(chartData.total_amount)}
+              </span>{' '}
+              recebidos
+            </span>
+          </div>
+        )}
+
+        {/* Chart */}
+        {chartLoading ? (
+          <div className="skeleton rounded-[8px] h-[200px]" />
+        ) : chartData?.daily?.length > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart
+              data={chartData.daily.map(d => ({
+                ...d,
+                name: new Date(d.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+              }))}
+              barCategoryGap="30%"
+            >
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 9, fill: 'var(--ink3)' }}
+                axisLine={false}
+                tickLine={false}
+                interval={chartData.daily.length > 15 ? Math.floor(chartData.daily.length / 10) : 0}
+              />
+              <YAxis hide allowDecimals={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(var(--accent-rgb),0.04)' }} />
+              <Legend
+                wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                formatter={v => <span style={{ color: 'var(--ink2)' }}>{v}</span>}
+              />
+              <Bar dataKey="approved"   name="Aprovados"  fill="var(--brand)" radius={[3,3,0,0]} />
+              <Bar dataKey="rejected"   name="Rejeitados" fill="#EF4444" radius={[3,3,0,0]} />
+              <Bar dataKey="suspicious" name="Suspeitos"  fill="#F59E0B" radius={[3,3,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[100px] flex items-center justify-center text-[12px] text-ink4">
+            Sem dados para o período selecionado
+          </div>
+        )}
+      </div>
     </div>
   )
 }

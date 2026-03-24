@@ -118,58 +118,65 @@ export default function DashboardPage({ stats, onNavigate }) {
         <div className="skeleton rounded-[14px] h-36" />
       ) : (
         <div
-          className="rounded-[14px] p-4 space-y-3"
+          className="rounded-[14px] p-4 space-y-4"
           style={{
             background: 'rgba(var(--brand-rgb),0.05)',
             boxShadow: '0 0 0 0.5px rgba(var(--brand-rgb),0.20), 0 4px 20px rgba(0,0,0,0.3)',
           }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink3">
             Resumo de hoje
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Sempre 2 colunas, divisor central */}
+          <div className="grid grid-cols-2" style={{ gap: 0 }}>
             {/* Total recebido */}
-            <div>
-              <p className="text-[10px] text-ink3 font-semibold uppercase tracking-wide mb-1">
-                Total recebido
+            <div className="pr-4" style={{ borderRight: '0.5px solid rgba(var(--brand-rgb),0.18)' }}>
+              <p className="text-[11px] text-ink3 font-semibold uppercase tracking-wide mb-2">
+                Recebido hoje
               </p>
-              <p
-                className="font-mono font-black tabular lining leading-none"
-                style={{ fontSize: 'clamp(16px, 3vw, 24px)', color: 'var(--brand-hi)' }}
-              >
+              <p className="font-mono font-black text-[26px] tabular lining leading-none" style={{ color: 'var(--brand-hi)' }}>
                 {BRL(data?.total_amount)}
               </p>
+              {data?.approved > 0 && (
+                <p className="text-[11px] text-ink3 mt-1.5">
+                  <span className="font-semibold text-ink">{data.approved}</span> comp. aprovados
+                </p>
+              )}
             </div>
             {/* Lucro líquido */}
-            <div>
-              <p className="text-[10px] text-ink3 font-semibold uppercase tracking-wide mb-1">
+            <div className="pl-4">
+              <p className="text-[11px] text-ink3 font-semibold uppercase tracking-wide mb-2">
                 Lucro líquido
               </p>
-              <p
-                className="font-mono font-black tabular lining leading-none"
-                style={{ fontSize: 'clamp(16px, 3vw, 24px)', color: 'var(--brand)' }}
-              >
+              <p className="font-mono font-black text-[26px] tabular lining leading-none" style={{ color: 'var(--brand)' }}>
                 {BRL(data?.total_profit)}
               </p>
+              <p className="text-[11px] text-ink3 mt-1.5">Margem de 56%</p>
             </div>
           </div>
 
           {/* Meta row */}
-          <div className="flex gap-4 pt-1" style={{ borderTop: '0.5px solid rgba(var(--brand-rgb),0.15)' }}>
+          <div className="flex flex-wrap gap-3 pt-2" style={{ borderTop: '0.5px solid rgba(var(--brand-rgb),0.15)' }}>
             {data?.avg_amount > 0 && (
               <div className="flex items-center gap-1.5">
-                <DollarSign size={11} style={{ color: 'var(--ink2)' }} />
-                <span className="text-[11px] text-ink3">
+                <DollarSign size={12} style={{ color: 'var(--ink2)' }} />
+                <span className="text-[12px] text-ink3">
                   Ticket: <span className="font-mono font-semibold text-ink">{BRL(data.avg_amount)}</span>
                 </span>
               </div>
             )}
             {total > 0 && (
               <div className="flex items-center gap-1.5">
-                <TrendingUp size={11} style={{ color: 'var(--ink2)' }} />
-                <span className="text-[11px] text-ink3">
-                  Aprovação: <span className="font-mono font-semibold" style={{ color: approvalRate >= 70 ? 'var(--brand-hi)' : approvalRate >= 40 ? '#FCD34D' : '#F87171' }}>{approvalRate}%</span>
+                <TrendingUp size={12} style={{ color: 'var(--ink2)' }} />
+                <span className="text-[12px] text-ink3">
+                  Aprovação:{' '}
+                  <span
+                    className="font-mono font-semibold"
+                    style={{ color: approvalRate >= 70 ? 'var(--brand-hi)' : approvalRate >= 40 ? '#FCD34D' : '#F87171' }}
+                  >
+                    {approvalRate}%
+                  </span>
                 </span>
               </div>
             )}

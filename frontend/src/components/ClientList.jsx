@@ -17,7 +17,7 @@ import AddClientModal    from './AddClientModal'
 import ClientDetailModal from './ClientDetailModal'
 
 const PAGE  = 50
-const TODAY = presetToDates('today')
+const TODAY = presetToDates('all')
 
 const STATUS_FILTERS = [
   { v: '',         l: 'Todos'     },
@@ -61,7 +61,7 @@ function Avatar({ name, phone }) {
 }
 
 export default function ClientList() {
-  const [date,         setDate]         = useState({ preset: 'today', ...TODAY })
+  const [date,         setDate]         = useState({ preset: 'all', ...TODAY })
   const [offset,       setOffset]       = useState(0)
   const [data,         setData]         = useState({ items: [], total: 0 })
   const [loading,      setLoading]      = useState(true)

@@ -262,3 +262,119 @@ def _period_to_date(period: str) -> date:
     if period == "month":
         return today - timedelta(days=29)
     return today
+
+
+# ── All-time stats ─────────────────────────────────────────────────────────────
+
+class AllTimeResponse(BaseModel):
+    total_amount: float
+    total_profit: float
+    total_approved: int
+    total_receipts: int
+
+
+@router.get("/alltime", response_model=AllTimeResponse)
+def get_alltime(db: Session = Depends(get_db)):
+    """Aggregated stats for all time — no date filter."""
+    total_receipts = db.query(Receipt).count()
+    total_approved = db.query(Receipt).filter(Receipt.status == ReceiptStatus.approved).count()
+    approved_analyses = (
+        db.query(Analysis)
+        .join(Receipt, Receipt.id == Analysis.receipt_id)
+        .filter(Receipt.status == ReceiptStatus.approved)
+        .all()
+    )
+    amounts = [_parse_amount(a.amount) for a in approved_analyses if a.amount]
+    total_amount = round(sum(amounts), 2)
+    total_profit = round(total_amount * 0.56, 2)
+    return AllTimeResponse(
+        total_amount=total_amount,
+        total_profit=total_profit,
+        total_approved=total_approved,
+        total_receipts=total_receipts,
+    )
+
+
+# ── Daily chart with free date range ──────────────────────────────────────────
+
+class DailyChartResponse(BaseModel):
+    date_from: str
+    date_to: str
+    daily: List[DayPoint]
+    total_amount: float
+    total_profit: float
+    total: int
+    approved: int
+
+
+@router.get("/daily-chart", response_model=DailyChartResponse)
+def get_daily_chart(
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db),
+):
+    """Daily breakdown for an arbitrary date range (for the custom chart widget)."""
+    from fastapi import HTTPException as _HTTPException
+    try:
+        df = datetime.strptime(date_from, "%Y-%m-%d").date()
+        dt = datetime.strptime(date_to,   "%Y-%m-%d").date()
+    except ValueError:
+        raise _HTTPException(status_code=400, detail="Formato de data inválido. Use YYYY-MM-DD.")
+
+    if df > dt:
+        raise _HTTPException(status_code=400, detail="date_from deve ser anterior a date_to.")
+    if (dt - df).days > 366:
+        raise _HTTPException(status_code=400, detail="Intervalo máximo: 366 dias.")
+
+    start_dt = datetime.combine(df, datetime.min.time())
+    end_dt   = datetime.combine(dt, datetime.min.time()) + timedelta(days=1)
+
+    base = db.query(Receipt).filter(
+        Receipt.received_at >= start_dt,
+        Receipt.received_at < end_dt,
+    )
+    total    = base.count()
+    approved = base.filter(Receipt.status == ReceiptStatus.approved).count()
+
+    approved_analyses = (
+        db.query(Analysis)
+        .join(Receipt, Receipt.id == Analysis.receipt_id)
+        .filter(
+            Receipt.received_at >= start_dt,
+            Receipt.received_at < end_dt,
+            Receipt.status == ReceiptStatus.approved,
+        )
+        .all()
+    )
+    amounts = [_parse_amount(a.amount) for a in approved_analyses if a.amount]
+    total_amount = round(sum(amounts), 2)
+    total_profit = round(total_amount * 0.56, 2)
+
+    daily: List[DayPoint] = []
+    current = df
+    while current <= dt:
+        day_start = datetime.combine(current, datetime.min.time())
+        day_end   = day_start + timedelta(days=1)
+        day_q     = db.query(Receipt).filter(
+            Receipt.received_at >= day_start,
+            Receipt.received_at < day_end,
+        )
+        daily.append(DayPoint(
+            date=str(current),
+            approved=day_q.filter(Receipt.status == ReceiptStatus.approved).count(),
+            rejected=day_q.filter(Receipt.status == ReceiptStatus.rejected).count(),
+            suspicious=day_q.filter(Receipt.status == ReceiptStatus.suspicious).count(),
+            pending=day_q.filter(Receipt.status == ReceiptStatus.pending).count(),
+            total=day_q.count(),
+        ))
+        current += timedelta(days=1)
+
+    return DailyChartResponse(
+        date_from=str(df),
+        date_to=str(dt),
+        daily=daily,
+        total_amount=total_amount,
+        total_profit=total_profit,
+        total=total,
+        approved=approved,
+    )
