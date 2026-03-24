@@ -63,10 +63,7 @@ export default function DateFilter({ value = 'today', customFrom, customTo, onCh
   return (
     <div className="space-y-2">
       {/* Chips */}
-      <div
-        className="flex gap-1.5 overflow-x-auto pb-0.5"
-        style={{ scrollbarWidth: 'none' }}
-      >
+      <div className="flex gap-1.5 flex-wrap">
         {PRESETS.map(p => (
           <button
             key={p.value}

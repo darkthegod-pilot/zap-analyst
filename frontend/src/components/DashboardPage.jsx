@@ -177,32 +177,6 @@ export default function DashboardPage({ stats, onNavigate }) {
         </div>
       )}
 
-      {/* Status pills */}
-      {stats && (
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { Icon: CheckCircle,   val: stats.approved,  label: 'Aprovados',  c: '52,211,153',  bg: '16,185,129'  },
-            { Icon: Clock,         val: stats.pending,   label: 'Pendentes',  c: '122,141,181', bg: '75,94,138'   },
-            { Icon: AlertTriangle, val: stats.suspicious,label: 'Suspeitos',  c: '252,211,77',  bg: '245,158,11'  },
-            { Icon: XCircle,       val: stats.rejected,  label: 'Rejeitados', c: '248,113,113', bg: '239,68,68'   },
-          ].map(({ Icon, val, label, c, bg }) => (
-            <div
-              key={label}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-full"
-              style={{
-                background: `rgba(${bg},0.08)`,
-                boxShadow: `0 0 0 0.5px rgba(${bg},0.22)`,
-              }}
-            >
-              <Icon size={12} style={{ color: `rgb(${c})` }} />
-              <span className="font-mono font-bold text-[13px] tabular" style={{ color: `rgb(${c})` }}>
-                {val ?? 0}
-              </span>
-              <span className="text-[10px] font-semibold text-ink3 uppercase tracking-wide">{label}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Quick nav grid */}
       {loading ? (

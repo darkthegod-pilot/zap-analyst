@@ -31,7 +31,7 @@ const TODAY = presetToDates('today')
 function StatPill({ Icon, value, label, color, bg, shadow }) {
   return (
     <div
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0"
       style={{ background: bg, boxShadow: shadow }}
     >
       <Icon size={12} style={{ color }} />
@@ -371,14 +371,14 @@ export default function App() {
           {/* Stats strip — receipts tab only */}
           {tab === 'receipts' && (
             <div
-              className="flex flex-wrap gap-1.5 px-4 pb-3"
-              style={{ borderTop: '0.5px solid rgba(var(--accent-rgb),0.05)', paddingTop: '10px' }}
+              className="flex gap-1.5 px-4 pb-3 overflow-x-auto"
+              style={{ scrollbarWidth: 'none', borderTop: '0.5px solid rgba(var(--accent-rgb),0.05)', paddingTop: '10px' }}
             >
-              <StatPill Icon={FileStack}     value={stats?.total}     label="total"  color="var(--ink2)" bg="rgba(var(--accent-rgb),0.05)" shadow="0 0 0 0.5px rgba(var(--accent-rgb),0.09)" />
-              <StatPill Icon={CheckCircle}   value={stats?.approved}  label="aprov." color="var(--brand-hi)" bg="rgba(var(--brand-rgb),0.08)"  shadow="0 0 0 0.5px rgba(var(--brand-rgb),0.20)"  />
-              <StatPill Icon={AlertTriangle} value={stats?.suspicious} label="susp."  color="#FCD34D" bg="rgba(245,158,11,0.08)"  shadow="0 0 0 0.5px rgba(245,158,11,0.20)"  />
-              <StatPill Icon={Clock}         value={stats?.pending}   label="pend."  color="var(--ink2)" bg="rgba(75,94,138,0.08)"   shadow="0 0 0 0.5px rgba(75,94,138,0.20)"   />
-              <StatPill Icon={XCircle}       value={stats?.rejected}  label="rejeit." color="#F87171" bg="rgba(239,68,68,0.08)"   shadow="0 0 0 0.5px rgba(239,68,68,0.20)"   />
+              <StatPill Icon={FileStack}     value={stats?.total}      label="total"   color="var(--ink2)"     bg="rgba(var(--accent-rgb),0.05)" shadow="0 0 0 0.5px rgba(var(--accent-rgb),0.09)" />
+              <StatPill Icon={CheckCircle}   value={stats?.approved}   label="aprov."  color="var(--brand-hi)" bg="rgba(var(--brand-rgb),0.08)"  shadow="0 0 0 0.5px rgba(var(--brand-rgb),0.20)"  />
+              <StatPill Icon={AlertTriangle} value={stats?.suspicious} label="susp."   color="#FCD34D"         bg="rgba(245,158,11,0.08)"         shadow="0 0 0 0.5px rgba(245,158,11,0.20)"        />
+              <StatPill Icon={Clock}         value={stats?.pending}    label="pend."   color="var(--ink2)"     bg="rgba(75,94,138,0.08)"          shadow="0 0 0 0.5px rgba(75,94,138,0.20)"         />
+              <StatPill Icon={XCircle}       value={stats?.rejected}   label="rejeit." color="#F87171"         bg="rgba(239,68,68,0.08)"          shadow="0 0 0 0.5px rgba(239,68,68,0.20)"         />
             </div>
           )}
         </header>
