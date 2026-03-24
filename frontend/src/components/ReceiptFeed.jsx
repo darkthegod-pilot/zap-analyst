@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { FileStack, CheckCircle, XCircle, X, Loader2, Search } from 'lucide-react'
+import { FileStack, CheckCircle, XCircle, X, Loader2, Search, CalendarDays, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
@@ -18,6 +18,15 @@ const STATUS = [
   { v: 'rejected',    l: 'Rejeitados'},
 ]
 
+const PRESET_LABELS = {
+  today:     'Hoje',
+  yesterday: 'Ontem',
+  week:      '7 dias',
+  month:     '30 dias',
+  all:       'Tudo',
+  custom:    'Custom',
+}
+
 const PAGE = 20
 const TODAY = presetToDates('today')
 
@@ -31,9 +40,20 @@ export default function ReceiptFeed({ onRefreshStats }) {
   const [bulkLoad, setBulkLoad] = useState(null) // 'approve' | 'reject' | null
   const [searchQ,      setSearchQ]      = useState('')
   const [searchInput,  setSearchInput]  = useState('')
+  const [dateOpen,     setDateOpen]     = useState(false)
   const searchTimer = useRef(null)
+  const dateRef     = useRef(null)
 
   const selectionMode = selected.size > 0
+
+  // Close date dropdown on outside click
+  useEffect(() => {
+    function handler(e) {
+      if (dateRef.current && !dateRef.current.contains(e.target)) setDateOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -94,29 +114,63 @@ export default function ReceiptFeed({ onRefreshStats }) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Date filter */}
-      <DateFilter
-        value={date.preset}
-        customFrom={date.date_from}
-        customTo={date.date_to}
-        onChange={d => { setDate(d); setOffset(0) }}
-      />
+    <div className="space-y-3">
+      {/* Row 1: Search + Date dropdown */}
+      <div className="flex gap-2 items-center">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink4 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar por cliente…"
+            className="input w-full pl-8 text-[13px]"
+            value={searchInput}
+            onChange={e => handleSearch(e.target.value)}
+          />
+        </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink4 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Buscar por cliente (nome ou telefone)…"
-          className="input w-full pl-8 text-[13px]"
-          value={searchInput}
-          onChange={e => handleSearch(e.target.value)}
-        />
+        {/* Date dropdown button */}
+        <div className="relative shrink-0" ref={dateRef}>
+          <button
+            onClick={() => setDateOpen(v => !v)}
+            className="btn-ghost gap-1.5 whitespace-nowrap"
+            style={{ paddingLeft: 10, paddingRight: 10 }}
+          >
+            <CalendarDays size={12} />
+            <span className="text-[12px]">{PRESET_LABELS[date.preset] ?? 'Data'}</span>
+            <ChevronDown
+              size={11}
+              className="transition-transform duration-150"
+              style={{ transform: dateOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            />
+          </button>
+
+          {dateOpen && (
+            <div
+              className="absolute right-0 top-full mt-1.5 z-30 p-3 rounded-[12px]"
+              style={{
+                background: '#0D1525',
+                boxShadow: '0 0 0 0.5px rgba(100,150,255,0.12), 0 8px 24px rgba(0,0,0,0.5)',
+                minWidth: 280,
+              }}
+            >
+              <DateFilter
+                value={date.preset}
+                customFrom={date.date_from}
+                customTo={date.date_to}
+                onChange={d => {
+                  setDate(d)
+                  setOffset(0)
+                  if (d.preset !== 'custom') setDateOpen(false)
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Status filter */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+      {/* Row 2: Status chips */}
+      <div className="flex gap-1.5 flex-wrap">
         {STATUS.map(f => (
           <button
             key={f.v}

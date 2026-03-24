@@ -130,14 +130,9 @@ export default function ClientList() {
 
   return (
     <div className="space-y-4">
-      {/* Header row */}
-      <div className="flex items-center justify-between gap-3">
-        <DateFilter
-          value={date.preset}
-          customFrom={date.date_from}
-          customTo={date.date_to}
-          onChange={d => { setDate(d); setOffset(0) }}
-        />
+      {/* Header row: title + add button (always visible) */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-black text-[15px] text-ink">Clientes</h2>
         <button
           onClick={() => setShowAdd(true)}
           className="btn-primary btn-sm shrink-0"
@@ -146,6 +141,14 @@ export default function ClientList() {
           Adicionar
         </button>
       </div>
+
+      {/* Date filter (full width below) */}
+      <DateFilter
+        value={date.preset}
+        customFrom={date.date_from}
+        customTo={date.date_to}
+        onChange={d => { setDate(d); setOffset(0) }}
+      />
 
       {/* Search */}
       <div className="relative">
