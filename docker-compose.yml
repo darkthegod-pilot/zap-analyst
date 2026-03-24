@@ -8,6 +8,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
+      - .:/app/project
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file: .env
     expose:
       - "8000"

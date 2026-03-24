@@ -132,4 +132,8 @@ export const api = {
 
   testOpenAI: () =>
     req('/settings/test-openai', { method: 'POST' }),
+
+  // ── System ─────────────────────────────────────────────────────────────────
+  systemUpdate:  () => req('/system/update',  { method: 'POST' }),
+  systemVersion: () => req('/system/version'),
 }

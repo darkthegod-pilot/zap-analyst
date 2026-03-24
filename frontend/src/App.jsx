@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   FileStack, Users, BarChart3, AlertOctagon, Settings,
   RefreshCw, CheckCircle, AlertTriangle, Clock, XCircle,
-  LogOut, ChevronDown, LayoutDashboard, Menu,
+  LogOut, ChevronDown, LayoutDashboard, Menu, Loader2, Check, AlertCircle,
 } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import { usePolling }    from './hooks/usePolling'
@@ -116,7 +116,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats,    setStats]    = useState(null)
   const [online,   setOnline]   = useState(true)
-  const [spin,     setSpin]     = useState(false)
+  const [updateState, setUpdateState] = useState('idle') // idle|checking|updating|done|up_to_date|error
   const [dateCtx,  setDateCtx]  = useState({ preset: 'today', ...TODAY })
   const [unlocked, setUnlocked] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
@@ -151,10 +151,37 @@ export default function App() {
 
   usePolling(refresh, 6000)
 
-  async function manualRefresh() {
-    setSpin(true)
-    await refresh()
-    setTimeout(() => setSpin(false), 500)
+  async function handleUpdate() {
+    setUpdateState('checking')
+    try {
+      const r = await api.systemUpdate()
+      if (r.status === 'up_to_date') {
+        setUpdateState('up_to_date')
+        setTimeout(() => setUpdateState('idle'), 3000)
+        return
+      }
+      if (r.status === 'updating') {
+        setUpdateState('updating')
+        const target = r.to
+        let attempts = 0
+        const poll = setInterval(async () => {
+          attempts++
+          try {
+            const v = await api.systemVersion()
+            if (v.commit === target || attempts > 90) {
+              clearInterval(poll)
+              setUpdateState('done')
+              setTimeout(() => setUpdateState('idle'), 4000)
+            }
+          } catch { /* container reiniciando */ }
+        }, 2000)
+        return
+      }
+      setUpdateState('error')
+    } catch {
+      setUpdateState('error')
+    }
+    setTimeout(() => setUpdateState('idle'), 3000)
   }
 
   function handleLogout() {
@@ -294,16 +321,30 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right: refresh + status + avatar */}
+            {/* Right: update button + status + avatar */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={manualRefresh}
-                className="btn-ghost"
-                aria-label="Atualizar"
-              >
-                <RefreshCw size={13} className={spin ? 'animate-spin' : ''} />
-                <span className="hidden md:inline text-[12px]">Atualizar</span>
-              </button>
+              {(() => {
+                const U = {
+                  idle:       { Icon: RefreshCw,   text: 'Atualizar',      color: 'var(--ink2)', spin: false },
+                  checking:   { Icon: Loader2,      text: 'Verificando…',   color: 'var(--brand)', spin: true  },
+                  updating:   { Icon: Loader2,      text: 'Atualizando…',   color: '#F59E0B',      spin: true  },
+                  done:       { Icon: Check,        text: '✓ Atualizado',   color: '#34D399',      spin: false },
+                  up_to_date: { Icon: Check,        text: 'Sem novidades',  color: 'var(--ink3)',  spin: false },
+                  error:      { Icon: AlertCircle,  text: 'Erro',           color: '#EF4444',      spin: false },
+                }[updateState]
+                return (
+                  <button
+                    onClick={handleUpdate}
+                    disabled={updateState !== 'idle'}
+                    className="btn-ghost"
+                    style={{ color: U.color, transition: 'color 0.2s' }}
+                    aria-label="Atualizar sistema"
+                  >
+                    <U.Icon size={13} className={U.spin ? 'animate-spin' : ''} />
+                    <span className="hidden md:inline text-[12px]">{U.text}</span>
+                  </button>
+                )
+              })()}
 
               {/* Status — visible only mobile (desktop shows in sidebar) */}
               <div
