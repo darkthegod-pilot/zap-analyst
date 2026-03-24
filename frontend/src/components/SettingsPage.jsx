@@ -280,8 +280,11 @@ export default function SettingsPage({ theme, setTheme }) {
           <div className="flex items-start gap-2">
             <Info size={12} className="text-brand mt-0.5 shrink-0" />
             <p className="text-[11px] text-ink2 leading-snug">
-              Cole este URL no painel externo da ZAPI em{' '}
-              <span className="font-mono text-brand">Webhook → Ao receber → URL</span>:
+              Cole este URL no painel da ZAPI em{' '}
+              <span className="font-mono text-brand">Webhook → Ao receber → URL</span>
+              {' '}e também em{' '}
+              <span className="font-mono text-brand">Webhook → Ao enviar → URL</span>
+              {' '}(necessário para registrar clientes via "Comprovante salvo."):
             </p>
           </div>
           <div className="flex items-center gap-2">

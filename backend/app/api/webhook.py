@@ -44,14 +44,19 @@ async def zapi_webhook(
     except Exception:
         return {"ok": True}
 
-    logger.debug(f"ZAPI webhook: {body}")
+    logger.info(f"ZAPI webhook body: {body}")
 
     # Normalise: ZAPI sends different shapes depending on event type
-    is_from_me = body.get("fromMe", False)
+    # "fromMe" can be bool or string "true"/"false"; also check "isFromMe"
+    raw_from_me = body.get("fromMe") or body.get("isFromMe") or False
+    is_from_me = raw_from_me is True or str(raw_from_me).lower() in ("true", "1")
     phone = _extract_phone(body)
     text = body.get("text", {})
     if isinstance(text, dict):
         text = text.get("message", "")
+    # Fallback: some ZAPI versions send top-level "message" string
+    if not text:
+        text = body.get("message", "") or ""
 
     # --- Registration trigger (admin sends "Comprovante salvo." to client) ---
     if is_from_me and isinstance(text, str) and text.strip() == REGISTER_TRIGGER:
