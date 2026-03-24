@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 from pathlib import Path
 from typing import List, Optional
 
@@ -17,6 +17,7 @@ from app.schemas.receipt import (
     ReceiptStatusUpdate,
     StatsResponse,
 )
+from app.core.tz import brt_day_start_utc, brt_day_end_utc
 from app.services.score_calculator import on_receipt_approved
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
@@ -25,18 +26,19 @@ PAGE_SIZE = 20
 
 
 def _apply_date_filters(q, date_from: Optional[str], date_to: Optional[str]):
-    """Apply date range filters to a SQLAlchemy query on Receipt.received_at."""
+    """Apply date range filters to a SQLAlchemy query on Receipt.received_at.
+    Dates are interpreted as BRT calendar days and converted to UTC for comparison.
+    """
     if date_from:
         try:
-            dt = datetime.strptime(date_from, "%Y-%m-%d")
-            q = q.filter(Receipt.received_at >= dt)
+            d = datetime.strptime(date_from, "%Y-%m-%d").date()
+            q = q.filter(Receipt.received_at >= brt_day_start_utc(d))
         except ValueError:
             pass
     if date_to:
         try:
-            # include the full day
-            dt = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
-            q = q.filter(Receipt.received_at < dt)
+            d = datetime.strptime(date_to, "%Y-%m-%d").date()
+            q = q.filter(Receipt.received_at < brt_day_end_utc(d))
         except ValueError:
             pass
     return q

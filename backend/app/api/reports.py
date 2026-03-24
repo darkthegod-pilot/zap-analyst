@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from openai import AsyncOpenAI
 
 from app.core.config import get_settings
+from app.core.tz import brt_day_start_utc, brt_day_end_utc, BRT as _BRT
 from app.models.database import get_db
 from app.models.client import Client
 from app.models.receipt import Receipt, Analysis, ReceiptStatus
@@ -31,7 +32,7 @@ def _parse_amount(s: str | None) -> float:
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 settings = get_settings()
-BRT = pytz.timezone("America/Sao_Paulo")
+BRT = _BRT
 
 INTERPRET_PROMPT = """Você é um assistente do sistema DarkCred. O usuário pediu um relatório.
 Interprete a mensagem e retorne APENAS um JSON:
@@ -107,8 +108,9 @@ def get_summary(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=f"Período inválido. Use: today, yesterday, week, month")
 
-    start_dt = datetime.combine(date_from, datetime.min.time())
-    end_dt   = datetime.combine(date_to,   datetime.min.time()) + timedelta(days=1)
+    # Convert BRT calendar dates to UTC boundaries (stored timestamps are UTC)
+    start_dt = brt_day_start_utc(date_from)
+    end_dt   = brt_day_end_utc(date_to)
 
     base = db.query(Receipt).filter(
         Receipt.received_at >= start_dt,
@@ -147,8 +149,8 @@ def get_summary(
     daily: List[DayPoint] = []
     current = date_from
     while current <= date_to:
-        day_start = datetime.combine(current, datetime.min.time())
-        day_end   = day_start + timedelta(days=1)
+        day_start = brt_day_start_utc(current)
+        day_end   = brt_day_end_utc(current)
         day_q     = db.query(Receipt).filter(
             Receipt.received_at >= day_start,
             Receipt.received_at < day_end,
@@ -164,6 +166,7 @@ def get_summary(
         current += timedelta(days=1)
 
     # ── Hourly breakdown (only when period = today or yesterday) ───────────
+    # Convert received_at (UTC) back to BRT to group by BRT hour
     hourly: List[HourPoint] = []
     if period in ("today", "yesterday"):
         receipts_list = db.query(Receipt).filter(
@@ -172,7 +175,9 @@ def get_summary(
         ).all()
         hour_map = {}
         for r in receipts_list:
-            h = r.received_at.hour
+            # Convert stored UTC timestamp to BRT hour
+            brt_dt = pytz.UTC.localize(r.received_at).astimezone(BRT)
+            h = brt_dt.hour
             hour_map[h] = hour_map.get(h, 0) + 1
         hourly = [HourPoint(hour=h, total=hour_map.get(h, 0)) for h in range(24)]
 
@@ -326,8 +331,9 @@ def get_daily_chart(
     if (dt - df).days > 366:
         raise _HTTPException(status_code=400, detail="Intervalo máximo: 366 dias.")
 
-    start_dt = datetime.combine(df, datetime.min.time())
-    end_dt   = datetime.combine(dt, datetime.min.time()) + timedelta(days=1)
+    # Convert BRT calendar dates to UTC boundaries
+    start_dt = brt_day_start_utc(df)
+    end_dt   = brt_day_end_utc(dt)
 
     base = db.query(Receipt).filter(
         Receipt.received_at >= start_dt,
@@ -353,8 +359,8 @@ def get_daily_chart(
     daily: List[DayPoint] = []
     current = df
     while current <= dt:
-        day_start = datetime.combine(current, datetime.min.time())
-        day_end   = day_start + timedelta(days=1)
+        day_start = brt_day_start_utc(current)
+        day_end   = brt_day_end_utc(current)
         day_q     = db.query(Receipt).filter(
             Receipt.received_at >= day_start,
             Receipt.received_at < day_end,

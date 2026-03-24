@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.tz import brt_day_start_utc, brt_day_end_utc
 from app.models.database import get_db
 from app.models.client import Client
 from app.models.daily_payment import DailyPayment
@@ -42,16 +43,17 @@ class BulkClientBody(BaseModel):
 
 
 def _apply_date_filters(q, date_from: Optional[str], date_to: Optional[str]):
+    """Filter by registered_at. Dates are BRT calendar days, converted to UTC."""
     if date_from:
         try:
-            dt = datetime.strptime(date_from, "%Y-%m-%d")
-            q = q.filter(Client.registered_at >= dt)
+            d = datetime.strptime(date_from, "%Y-%m-%d").date()
+            q = q.filter(Client.registered_at >= brt_day_start_utc(d))
         except ValueError:
             pass
     if date_to:
         try:
-            dt = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
-            q = q.filter(Client.registered_at < dt)
+            d = datetime.strptime(date_to, "%Y-%m-%d").date()
+            q = q.filter(Client.registered_at < brt_day_end_utc(d))
         except ValueError:
             pass
     return q
