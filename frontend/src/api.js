@@ -61,8 +61,8 @@ export const api = {
     }),
 
   // ── Clients ────────────────────────────────────────────────────────────────
-  getClients: ({ date_from, date_to, q, limit = 20, offset = 0 } = {}) => {
-    const qs = buildParams({ date_from, date_to, q, limit, offset })
+  getClients: ({ date_from, date_to, q, status, limit = 20, offset = 0 } = {}) => {
+    const qs = buildParams({ date_from, date_to, q, status, limit, offset })
     return req(`/clients?${qs}`)
   },
 
