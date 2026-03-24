@@ -239,6 +239,15 @@ export default function ReceiptFeed({ onRefreshStats }) {
           <span className="font-mono text-[12px] font-bold text-brand flex-1">
             {selected.size} selecionado{selected.size !== 1 ? 's' : ''}
           </span>
+          {selected.size < data.items.length && (
+            <button
+              onClick={() => setSelected(new Set(data.items.map(r => r.id)))}
+              disabled={!!bulkLoad}
+              className="btn-ghost btn-sm text-[11px]"
+            >
+              Todos ({data.items.length})
+            </button>
+          )}
           <button
             onClick={() => bulkAction('approve')}
             disabled={!!bulkLoad}

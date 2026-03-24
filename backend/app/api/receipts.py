@@ -52,7 +52,11 @@ def list_receipts(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Receipt).join(Client, Receipt.client_id == Client.id, isouter=True)
+    query = (
+        db.query(Receipt)
+        .options(joinedload(Receipt.client), joinedload(Receipt.analysis))
+        .join(Client, Receipt.client_id == Client.id, isouter=True)
+    )
     if status:
         try:
             query = query.filter(Receipt.status == ReceiptStatus(status))

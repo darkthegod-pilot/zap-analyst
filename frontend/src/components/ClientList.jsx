@@ -1,5 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2, Snowflake, Play, Search, FileText } from 'lucide-react'
+import {
+  Pencil, Check, X, Users, MessageCircle, UserPlus, Trash2,
+  Snowflake, Play, Search, FileText, CheckSquare, Square,
+  Loader2,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePolling }    from '../hooks/usePolling'
 import { api }           from '../api'
@@ -12,8 +16,15 @@ import { SkeletonList }  from './Skeleton'
 import AddClientModal    from './AddClientModal'
 import ClientDetailModal from './ClientDetailModal'
 
-const PAGE  = 20
+const PAGE  = 50
 const TODAY = presetToDates('today')
+
+const STATUS_FILTERS = [
+  { v: '',         l: 'Todos'     },
+  { v: 'active',   l: 'Ativos'   },
+  { v: 'frozen',   l: 'Congelados'},
+  { v: 'inactive', l: 'Inativos' },
+]
 
 /* ── Deterministic avatar colour ────────────────── */
 function avatarColor(str) {
@@ -61,23 +72,30 @@ export default function ClientList() {
   const [searchQ,      setSearchQ]      = useState('')
   const [searchInput,  setSearchInput]  = useState('')
   const [actionId,     setActionId]     = useState(null)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [selected,     setSelected]     = useState(new Set())
+  const [bulkLoad,     setBulkLoad]     = useState(null) // 'freeze' | 'unfreeze' | 'delete' | null
   const searchTimer = useRef(null)
+
+  const selectionMode = selected.size > 0
 
   const load = useCallback(async () => {
     try {
       const r = await api.getClients({
         date_from: date.date_from,
         date_to:   date.date_to,
-        q: searchQ || undefined,
-        limit: PAGE, offset,
+        q:      searchQ || undefined,
+        status: statusFilter || undefined,
+        limit:  PAGE,
+        offset,
       })
       setData(r)
     } finally {
       setLoading(false)
     }
-  }, [date.date_from, date.date_to, searchQ, offset])
+  }, [date.date_from, date.date_to, searchQ, statusFilter, offset])
 
-  useEffect(() => { setOffset(0) }, [date.date_from, date.date_to, searchQ])
+  useEffect(() => { setOffset(0); setSelected(new Set()) }, [date.date_from, date.date_to, searchQ, statusFilter])
   useEffect(() => () => clearTimeout(searchTimer.current), [])
   usePolling(load, 8000)
 
@@ -85,6 +103,40 @@ export default function ClientList() {
     setSearchInput(val)
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => setSearchQ(val), 300)
+  }
+
+  function toggleSelect(id) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function selectAllPage() {
+    setSelected(new Set(data.items.map(c => c.id)))
+  }
+
+  function clearSelection() {
+    setSelected(new Set())
+  }
+
+  async function runBulk(action) {
+    if (action === 'delete') {
+      if (!window.confirm(`Excluir ${selected.size} cliente(s)? Esta ação não pode ser desfeita.`)) return
+    }
+    setBulkLoad(action)
+    try {
+      await api.bulkClients(Array.from(selected), action)
+      const labels = { freeze: 'congelado(s)', unfreeze: 'descongelado(s)', delete: 'excluído(s)', activate: 'ativado(s)' }
+      toast.success(`${selected.size} cliente(s) ${labels[action]}`)
+      clearSelection()
+      load()
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setBulkLoad(null)
+    }
   }
 
   async function deleteClient(id, label) {
@@ -130,7 +182,7 @@ export default function ClientList() {
 
   return (
     <div className="space-y-4">
-      {/* Header row: title + add button (always visible) */}
+      {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-black text-[15px] text-ink">Clientes</h2>
         <button
@@ -142,7 +194,7 @@ export default function ClientList() {
         </button>
       </div>
 
-      {/* Date filter (full width below) */}
+      {/* Date filter */}
       <DateFilter
         value={date.preset}
         customFrom={date.date_from}
@@ -160,6 +212,19 @@ export default function ClientList() {
           value={searchInput}
           onChange={e => handleSearch(e.target.value)}
         />
+      </div>
+
+      {/* Status filter chips */}
+      <div className="flex gap-1.5 flex-wrap">
+        {STATUS_FILTERS.map(f => (
+          <button
+            key={f.v}
+            onClick={() => setStatusFilter(f.v)}
+            className={statusFilter === f.v ? 'chip-active' : 'chip-default'}
+          >
+            {f.l}
+          </button>
+        ))}
       </div>
 
       {/* Tip */}
@@ -203,28 +268,54 @@ export default function ClientList() {
         />
       ) : (
         <>
+          {/* Select all bar */}
+          <div className="flex items-center justify-between text-[12px] text-ink3">
+            <span>{data.total} cliente(s)</span>
+            <button
+              onClick={selectionMode ? clearSelection : selectAllPage}
+              className="flex items-center gap-1 text-[11px] font-semibold hover:text-ink2 transition"
+            >
+              {selectionMode
+                ? <><X size={11} /> Cancelar ({selected.size})</>
+                : <><CheckSquare size={11} /> Selecionar página</>
+              }
+            </button>
+          </div>
+
           <div className="space-y-2">
             {data.items.map(c => {
               const isFrozen = c.frozen
               const label = c.name || c.phone
+              const isSelected = selected.has(c.id)
               return (
                 <div
                   key={c.id}
                   className="rounded-[10px] p-3 flex items-center gap-3 transition-colors duration-150 cursor-pointer active:opacity-80"
                   style={{
                     background: 'var(--panel)',
-                    boxShadow: isFrozen
-                      ? '0 0 0 0.5px rgba(75,94,138,0.25), 0 2px 6px rgba(0,0,0,0.4)'
-                      : '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
-                    opacity: isFrozen ? 0.65 : 1,
+                    boxShadow: isSelected
+                      ? '0 0 0 1.5px rgba(var(--brand-rgb),0.55), 0 2px 6px rgba(0,0,0,0.4)'
+                      : isFrozen
+                        ? '0 0 0 0.5px rgba(75,94,138,0.25), 0 2px 6px rgba(0,0,0,0.4)'
+                        : '0 0 0 0.5px rgba(var(--accent-rgb),0.07), 0 2px 6px rgba(0,0,0,0.4)',
+                    opacity: isFrozen && !isSelected ? 0.65 : 1,
                   }}
-                  onClick={() => setDetailClient(c)}
+                  onClick={() => selectionMode ? toggleSelect(c.id) : setDetailClient(c)}
                 >
-                  {/* Avatar */}
-                  <Avatar name={c.name} phone={c.phone} />
+                  {/* Checkbox / Avatar */}
+                  {selectionMode ? (
+                    <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                      {isSelected
+                        ? <CheckSquare size={20} className="text-brand" />
+                        : <Square size={20} className="text-ink4" />
+                      }
+                    </div>
+                  ) : (
+                    <Avatar name={c.name} phone={c.phone} />
+                  )}
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 min-w-0" onClick={e => selectionMode && e.stopPropagation()}>
                     {editingId === c.id ? (
                       <div className="flex items-center gap-1.5 overflow-hidden">
                         <input
@@ -247,12 +338,14 @@ export default function ClientList() {
                         <p className="text-[13px] font-semibold text-ink truncate">
                           {c.name || c.phone}
                         </p>
-                        <button
-                          onClick={() => { setEditingId(c.id); setEditName(c.name || '') }}
-                          className="text-ink4 hover:text-ink3 transition shrink-0"
-                        >
-                          <Pencil size={11} />
-                        </button>
+                        {!selectionMode && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingId(c.id); setEditName(c.name || '') }}
+                            className="text-ink4 hover:text-ink3 transition shrink-0"
+                          >
+                            <Pencil size={11} />
+                          </button>
+                        )}
                         {c.notes && (
                           <FileText size={11} className="text-ink4 shrink-0" title={c.notes} />
                         )}
@@ -262,7 +355,6 @@ export default function ClientList() {
                       {c.name && (
                         <span className="font-mono text-[11px] text-ink3">{formatPhone(c.phone)}</span>
                       )}
-                      {/* Status badge */}
                       {isFrozen ? (
                         <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: 'var(--idle)' }}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--idle)' }} />
@@ -312,44 +404,106 @@ export default function ClientList() {
                     </div>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                    {isFrozen ? (
-                      <button
-                        onClick={() => activateClient(c.id, label)}
-                        disabled={actionId === c.id}
-                        className="text-ink3 hover:text-ok transition p-1 disabled:opacity-40"
-                        title="Ativar"
-                      >
-                        <Play size={14} />
-                      </button>
-                    ) : (
-                      c.active && (
+                  {/* Action buttons (hidden in selection mode) */}
+                  {!selectionMode && (
+                    <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                      {isFrozen ? (
                         <button
-                          onClick={() => freezeClient(c.id, label)}
+                          onClick={() => activateClient(c.id, label)}
                           disabled={actionId === c.id}
-                          className="text-ink4 hover:text-idle transition p-1 disabled:opacity-40"
-                          title="Congelar"
+                          className="text-ink3 hover:text-ok transition p-1 disabled:opacity-40"
+                          title="Ativar"
                         >
-                          <Snowflake size={14} />
+                          <Play size={14} />
                         </button>
-                      )
-                    )}
-                    <button
-                      onClick={() => deleteClient(c.id, label)}
-                      disabled={actionId === c.id}
-                      className="text-ink4 hover:text-danger transition p-1 disabled:opacity-40"
-                      title="Excluir"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                      ) : (
+                        c.active && (
+                          <button
+                            onClick={() => freezeClient(c.id, label)}
+                            disabled={actionId === c.id}
+                            className="text-ink4 hover:text-idle transition p-1 disabled:opacity-40"
+                            title="Congelar"
+                          >
+                            <Snowflake size={14} />
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={() => deleteClient(c.id, label)}
+                        disabled={actionId === c.id}
+                        className="text-ink4 hover:text-danger transition p-1 disabled:opacity-40"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
-          <Pagination total={data.total} limit={PAGE} offset={offset} onChange={setOffset} />
+          <Pagination total={data.total} limit={PAGE} offset={offset} onChange={o => { setOffset(o); setSelected(new Set()) }} />
         </>
+      )}
+
+      {/* ── Floating bulk action bar ─────────────────── */}
+      {selectionMode && (
+        <div
+          className="fixed bottom-20 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[420px] z-50
+                     rounded-[14px] p-3 flex items-center gap-2"
+          style={{
+            background: 'var(--panel)',
+            boxShadow: '0 0 0 0.5px rgba(var(--accent-rgb),0.18), 0 8px 32px rgba(0,0,0,0.6)',
+          }}
+        >
+          <span className="text-[12px] font-semibold text-ink flex-1">
+            {selected.size} selecionado{selected.size !== 1 ? 's' : ''}
+          </span>
+
+          {/* Freeze */}
+          <button
+            onClick={() => runBulk('freeze')}
+            disabled={!!bulkLoad}
+            className="btn-sm btn-ghost gap-1.5 disabled:opacity-40"
+            title="Congelar selecionados"
+          >
+            {bulkLoad === 'freeze' ? <Loader2 size={12} className="animate-spin" /> : <Snowflake size={12} />}
+            <span className="text-[11px]">Congelar</span>
+          </button>
+
+          {/* Unfreeze */}
+          <button
+            onClick={() => runBulk('unfreeze')}
+            disabled={!!bulkLoad}
+            className="btn-sm btn-ghost gap-1.5 disabled:opacity-40"
+            title="Descongelar selecionados"
+            style={{ color: 'var(--brand-hi)' }}
+          >
+            {bulkLoad === 'unfreeze' ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+            <span className="text-[11px]">Ativar</span>
+          </button>
+
+          {/* Delete */}
+          <button
+            onClick={() => runBulk('delete')}
+            disabled={!!bulkLoad}
+            className="btn-sm btn-ghost gap-1.5 disabled:opacity-40"
+            title="Excluir selecionados"
+            style={{ color: '#F87171' }}
+          >
+            {bulkLoad === 'delete' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            <span className="text-[11px]">Excluir</span>
+          </button>
+
+          {/* Cancel */}
+          <button
+            onClick={clearSelection}
+            className="btn-sm btn-ghost p-1.5"
+            title="Cancelar seleção"
+          >
+            <X size={14} />
+          </button>
+        </div>
       )}
 
       {/* Add client modal */}
@@ -361,7 +515,7 @@ export default function ClientList() {
       )}
 
       {/* Client detail / score modal */}
-      {detailClient && (
+      {detailClient && !selectionMode && (
         <ClientDetailModal
           client={detailClient}
           onClose={() => setDetailClient(null)}

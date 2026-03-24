@@ -104,6 +104,9 @@ export const api = {
   bulkAction: (ids, action) =>
     req('/receipts/bulk', { method: 'POST', body: JSON.stringify({ ids, action }) }),
 
+  bulkClients: (ids, action) =>
+    req('/clients/bulk', { method: 'POST', body: JSON.stringify({ ids, action }) }),
+
   // ── Reports ────────────────────────────────────────────────────────────────
   getReportSummary: (period = 'today') =>
     req(`/reports/summary?period=${period}`),

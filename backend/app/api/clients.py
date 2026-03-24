@@ -5,21 +5,20 @@ from typing import List, Optional
 import pytz
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import or_
-from sqlalchemy.orm import Session
-
-from sqlalchemy.orm import subqueryload
+from sqlalchemy import or_, func
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.database import get_db
 from app.models.client import Client
 from app.models.daily_payment import DailyPayment
+from app.models.receipt import Receipt, ReceiptStatus
 from app.schemas.client import ClientCreate, ClientResponse, ClientScoreResponse, PaymentHistoryItem
 
 BRT = pytz.timezone("America/Sao_Paulo")
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
-PAGE_SIZE = 20
+PAGE_SIZE = 50
 
 
 class PaginatedClients(BaseModel):
@@ -35,6 +34,11 @@ class NameBody(BaseModel):
 
 class NotesBody(BaseModel):
     notes: Optional[str] = Field(None, max_length=2000)
+
+
+class BulkClientBody(BaseModel):
+    ids: List[int]
+    action: str  # 'freeze' | 'unfreeze' | 'delete' | 'activate'
 
 
 def _apply_date_filters(q, date_from: Optional[str], date_to: Optional[str]):
@@ -53,9 +57,22 @@ def _apply_date_filters(q, date_from: Optional[str], date_to: Optional[str]):
     return q
 
 
-def _to_response(c: Client) -> ClientResponse:
-    cr = ClientResponse.model_validate(c)
-    cr.receipts_count = len(c.receipts)
+def _receipt_count_subquery(db: Session):
+    return (
+        db.query(func.count(Receipt.id).label("cnt"), Receipt.client_id)
+        .group_by(Receipt.client_id)
+        .subquery()
+    )
+
+
+def _to_response(row) -> ClientResponse:
+    """Accept either a Client object or a (Client, count) tuple."""
+    if isinstance(row, tuple):
+        client, count = row[0], row[1]
+    else:
+        client, count = row, 0
+    cr = ClientResponse.model_validate(client)
+    cr.receipts_count = int(count or 0)
     return cr
 
 
@@ -64,20 +81,37 @@ def list_clients(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     q: Optional[str] = None,
+    status: Optional[str] = None,  # 'active' | 'frozen' | 'inactive'
     limit: int = PAGE_SIZE,
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Client).options(subqueryload(Client.receipts))
+    rc_sq = _receipt_count_subquery(db)
+    query = (
+        db.query(Client, func.coalesce(rc_sq.c.cnt, 0).label("receipts_count"))
+        .outerjoin(rc_sq, Client.id == rc_sq.c.client_id)
+    )
     query = _apply_date_filters(query, date_from, date_to)
     if q:
         q_like = f"%{q}%"
         query = query.filter(
             or_(Client.name.ilike(q_like), Client.phone.ilike(q_like))
         )
+    if status == 'frozen':
+        query = query.filter(Client.frozen == True)
+    elif status == 'active':
+        query = query.filter(Client.active == True, Client.frozen == False)
+    elif status == 'inactive':
+        query = query.filter(Client.active == False)
+
     total = query.count()
-    clients = query.order_by(Client.registered_at.desc()).offset(offset).limit(limit).all()
-    return PaginatedClients(items=[_to_response(c) for c in clients], total=total, limit=limit, offset=offset)
+    rows = query.order_by(Client.registered_at.desc()).offset(offset).limit(limit).all()
+    return PaginatedClients(
+        items=[_to_response(r) for r in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("", response_model=ClientResponse, status_code=201)
@@ -89,7 +123,28 @@ def create_client(body: ClientCreate, db: Session = Depends(get_db)):
     db.add(client)
     db.commit()
     db.refresh(client)
-    return _to_response(client)
+    return _to_response((client, 0))
+
+
+@router.post("/bulk")
+def bulk_clients(body: BulkClientBody, db: Session = Depends(get_db)):
+    """Bulk freeze / unfreeze / delete / activate clients."""
+    if body.action not in ("freeze", "unfreeze", "delete", "activate"):
+        raise HTTPException(status_code=400, detail=f"Ação inválida: {body.action}")
+    clients_list = db.query(Client).filter(Client.id.in_(body.ids)).all()
+    for c in clients_list:
+        if body.action == "freeze":
+            c.frozen = True
+        elif body.action == "unfreeze":
+            c.frozen = False
+            c.active = True
+        elif body.action == "activate":
+            c.active = True
+            c.frozen = False
+        elif body.action == "delete":
+            db.delete(c)
+    db.commit()
+    return {"ok": True, "affected": len(clients_list)}
 
 
 @router.get("/calote", response_model=PaginatedClients)
@@ -99,18 +154,34 @@ def list_calote_clients(
     db: Session = Depends(get_db),
 ):
     """List clients flagged as calote (7+ consecutive missed days)."""
-    q = db.query(Client).options(subqueryload(Client.receipts)).filter(Client.calote == True)
+    rc_sq = _receipt_count_subquery(db)
+    q = (
+        db.query(Client, func.coalesce(rc_sq.c.cnt, 0).label("receipts_count"))
+        .outerjoin(rc_sq, Client.id == rc_sq.c.client_id)
+        .filter(Client.calote == True)
+    )
     total = q.count()
-    clients_list = q.order_by(Client.days_overdue.desc()).offset(offset).limit(limit).all()
-    return PaginatedClients(items=[_to_response(c) for c in clients_list], total=total, limit=limit, offset=offset)
+    rows = q.order_by(Client.days_overdue.desc()).offset(offset).limit(limit).all()
+    return PaginatedClients(
+        items=[_to_response(r) for r in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{client_id}", response_model=ClientResponse)
 def get_client(client_id: int, db: Session = Depends(get_db)):
-    client = db.query(Client).filter(Client.id == client_id).first()
-    if not client:
+    rc_sq = _receipt_count_subquery(db)
+    row = (
+        db.query(Client, func.coalesce(rc_sq.c.cnt, 0).label("receipts_count"))
+        .outerjoin(rc_sq, Client.id == rc_sq.c.client_id)
+        .filter(Client.id == client_id)
+        .first()
+    )
+    if not row:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
-    return _to_response(client)
+    return _to_response(row)
 
 
 @router.delete("/{client_id}", status_code=204)
@@ -199,7 +270,6 @@ def get_client_score(client_id: int, db: Session = Depends(get_db)):
             r = records[d]
             history.append(PaymentHistoryItem(date=str(d), status=r.status, penalty=r.penalty or 0))
         elif d < today:
-            # Past business day with no record — treated as unknown (may be before registration)
             history.append(PaymentHistoryItem(date=str(d), status="unknown", penalty=0))
         else:
             history.append(PaymentHistoryItem(date=str(d), status="future", penalty=0))
@@ -226,22 +296,35 @@ def _parse_amount_local(s: Optional[str]) -> float:
 @router.get("/{client_id}/receipts-summary")
 def get_client_receipts_summary(client_id: int, db: Session = Depends(get_db)):
     """Return financial summary and last 10 receipts for a client."""
-    from app.models.receipt import ReceiptStatus
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    approved = [r for r in client.receipts if r.status == ReceiptStatus.approved]
+    # Fetch only approved receipts with their analysis in one query
+    approved_receipts = (
+        db.query(Receipt)
+        .options(joinedload(Receipt.analysis))
+        .filter(Receipt.client_id == client_id, Receipt.status == ReceiptStatus.approved)
+        .all()
+    )
     amounts = [
         _parse_amount_local(r.analysis.amount)
-        for r in approved
+        for r in approved_receipts
         if r.analysis and r.analysis.amount
     ]
     total_amount = round(sum(amounts), 2)
     profit = round(total_amount * 0.56, 2)
     avg_ticket = round(total_amount / len(amounts), 2) if amounts else 0.0
 
-    recent = sorted(client.receipts, key=lambda x: x.received_at, reverse=True)[:10]
+    # Fetch most recent 10 receipts via SQL (no Python sort)
+    recent = (
+        db.query(Receipt)
+        .options(joinedload(Receipt.analysis))
+        .filter(Receipt.client_id == client_id)
+        .order_by(Receipt.received_at.desc())
+        .limit(10)
+        .all()
+    )
     receipts_data = [
         {
             "id": r.id,
@@ -258,7 +341,7 @@ def get_client_receipts_summary(client_id: int, db: Session = Depends(get_db)):
         "total_amount": total_amount,
         "profit": profit,
         "avg_ticket": avg_ticket,
-        "payment_count": len(approved),
+        "payment_count": len(approved_receipts),
         "receipts": receipts_data,
     }
 
