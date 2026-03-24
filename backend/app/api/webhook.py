@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 settings = get_settings()
 
-REGISTER_TRIGGER = "Comprovante salvo."
+REGISTER_TRIGGER = "comprovante salvo"  # matched case-insensitively, period optional
 
 
 @router.post("/webhook/zapi")
@@ -54,12 +54,14 @@ async def zapi_webhook(
     text = body.get("text", {})
     if isinstance(text, dict):
         text = text.get("message", "")
-    # Fallback: some ZAPI versions send top-level "message" string
+    # Fallback: some ZAPI versions send top-level "message" or "body" string
     if not text:
-        text = body.get("message", "") or ""
+        text = body.get("message", "") or body.get("body", "") or ""
 
-    # --- Registration trigger (admin sends "Comprovante salvo." to client) ---
-    if is_from_me and isinstance(text, str) and text.strip() == REGISTER_TRIGGER:
+    logger.info(f"ZAPI parsed — fromMe={is_from_me} phone={phone} text={repr(text)}")
+
+    # --- Registration trigger (admin sends "Comprovante salvo" to client) ---
+    if is_from_me and isinstance(text, str) and text.strip().rstrip('.').lower() == REGISTER_TRIGGER:
         if phone:
             _register_client(phone, db)
         return {"ok": True}
